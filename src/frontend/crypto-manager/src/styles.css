@@ -1,0 +1,27 @@
+/* You can add global styles to this file, and also import other style files */
+@import "../public/css/switzer.css";
+@import "tailwindcss";
+@import "tailwindcss-primeui";
+@import "primeicons/primeicons.css";
+
+@layer base {
+    h1 {
+        @apply text-3xl font-semibold tracking-tight text-slate-900;
+    }
+
+    h2 {
+        @apply text-2xl font-semibold tracking-tight text-slate-900;
+    }
+
+    h3 {
+        @apply text-lg font-semibold tracking-tight text-slate-900;
+    }
+
+    p {
+        @apply text-slate-600;
+    }
+
+    * {
+        font-family: Switzer-Variable, sans-serif;
+    }
+}

@@ -1,0 +1,42 @@
+<div class="min-h-screen bg-linear-to-b from-slate-50 via-sky-50 to-indigo-50 text-slate-900">
+    <header class="sticky top-0 z-10 border-b border-slate-200/60 bg-white/60 backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-xl bg-slate-900 text-white grid place-items-center font-semibold">
+                    CM
+                </div>
+                <div class="leading-tight">
+                    <div class="font-semibold tracking-tight">CryptoManager</div>
+                    <div class="text-xs text-slate-500">Keys & signing console</div>
+                </div>
+            </div>
+
+            <nav class="hidden items-center gap-2 md:flex">
+                <a routerLink="/dashboard" routerLinkActive="text-slate-900"
+                    class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
+                    Dashboard
+                </a>
+                <a routerLink="/keys" routerLinkActive="text-slate-900"
+                    class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
+                    Keys
+                </a>
+                <a routerLink="/sign" routerLinkActive="text-slate-900"
+                    class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
+                    Sign
+                </a>
+            </nav>
+
+            <div class="flex items-center gap-2">
+                <p-button type="button" icon="pi pi-user" [text]="true"></p-button>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 min-h-screen">
+        <router-outlet />
+    </main>
+
+    <footer class="mx-auto max-w-6xl px-4 pb-10 text-xs text-slate-500">
+        © {{ currentYear }} Blockchain Lab:UM
+    </footer>
+</div>

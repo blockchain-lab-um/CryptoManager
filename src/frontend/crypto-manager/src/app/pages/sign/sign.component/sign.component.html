@@ -2,16 +2,16 @@
     <div class="text-sm text-slate-500">Crypto</div>
     <h1 class="text-3xl font-semibold tracking-tight">Sign</h1>
     <p class="mt-2 max-w-2xl text-slate-600">
-        Provide text or upload a file to sign. The input is hashed (SHA-256) and sent to the HSM for signing.
+        Provide text or upload a file to sign.
     </p>
 </div>
 
 @if (error(); as err) {
-<p-message severity="error" [text]="err" class="mb-4"></p-message>
+<p-message severity="error" [text]="err" class="mb-4 block"></p-message>
 }
 
 <div class="grid gap-6 lg:grid-cols-2">
-    <div class="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur shadow-sm p-6">
+    <app-card padding="p-6">
         <div class="text-xs font-medium text-slate-500">Request</div>
         <div class="mt-1 text-lg font-semibold">Sign</div>
 
@@ -19,7 +19,7 @@
             <div>
                 <label class="text-xs text-slate-500" for="sign-key">Key</label>
                 <p-select id="sign-key" class="w-full mt-1" [options]="keyOptions()" placeholder="Select a key"
-                    formControlName="keyId" [loading]="keysResource.isLoading()" [filter]="true"
+                    formControlName="keyId" [loading]="keysService.keysResource.isLoading()" [filter]="true"
                     filterPlaceholder="Search keys..."></p-select>
             </div>
 
@@ -30,13 +30,8 @@
             </div>
 
             <div>
-                <label class="text-xs text-slate-500" for="sign-version">Key version (optional)</label>
-                <p-inputNumber id="sign-version" formControlName="version" class="w-full mt-1"></p-inputNumber>
-            </div>
-
-            <div>
                 <label class="text-xs text-slate-500 mb-1 block">Input</label>
-                <p-selectButton [options]="inputModeOptions" [ngModel]="inputMode()"
+                <p-selectButton styleClass="w-full" class="w-full" [options]="inputModeOptions" [ngModel]="inputMode()"
                     (ngModelChange)="inputMode.set($event)" [ngModelOptions]="{ standalone: true }"
                     aria-label="Input mode"></p-selectButton>
             </div>
@@ -49,7 +44,12 @@
             </div>
             } @else {
             <div>
-                <label class="text-xs text-slate-500 block mb-1" for="sign-file">File to sign</label>
+                <!-- <label class="text-xs text-slate-500 m-1 block">Return format</label>
+                <p-selectButton styleClass="w-full" class="w-full" [options]="returnFormatOptions"
+                    [ngModel]="signatureReturnFormat()" (ngModelChange)="signatureReturnFormat.set($event)"
+                    [ngModelOptions]="{ standalone: true }" aria-label="Return format"></p-selectButton> -->
+
+                <label class="text-xs text-slate-500 block m-1 mt-3" for="sign-file">File to sign</label>
                 <input id="sign-file" type="file" (change)="onFileSelected($event)" class="block w-full text-sm text-slate-600
                             file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                             file:text-sm file:font-medium file:bg-slate-100
@@ -68,13 +68,19 @@
             <button pButton type="button" label="Sign" class="w-full p-button" [loading]="signing()"
                 (click)="onSign()"></button>
         </div>
-    </div>
+    </app-card>
 
-    <div class="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur shadow-sm p-6">
+    <app-card padding="p-6">
         <div class="text-xs font-medium text-slate-500">Response</div>
-        <div class="mt-1 text-lg font-semibold">Signature</div>
+        <div class="mt-1 text-lg font-semibold">{{ signatureReturnFormatText }}</div>
 
         @if (result(); as res) {
+        @if (res.format === 'file' && res.signedFile) {
+        <div class="mt-4 space-y-4">
+            <p-button icon="pi pi-download" label="Download Signed File" (onClick)="downloadSignedFile()"
+                size="small"></p-button>
+        </div>
+        }@else {
         <div class="mt-4 space-y-4">
             <div class="rounded-xl border border-slate-200 bg-white p-4">
                 <div class="text-xs text-slate-500">Audit event</div>
@@ -100,10 +106,11 @@
                 </div>
             </div>
         </div>
+        }
         } @else {
         <div class="mt-6 text-slate-500 text-sm">
-            Run a signing request to see the signature and audit event ID here.
+            Run a signing request to see the signature.
         </div>
         }
-    </div>
+    </app-card>
 </div>

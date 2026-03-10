@@ -1,0 +1,33 @@
+<p-dialog [visible]="visible()" (visibleChange)="visibleChange.emit($event)" [modal]="true" [draggable]="false"
+    [resizable]="false" header="Create key" [style]="{ width: '42rem' }">
+
+    @if (error(); as err) {
+    <p-message severity="error" [text]="err" class="mb-4 block"></p-message>
+    }
+
+    <div class="space-y-4" [formGroup]="form">
+        <div>
+            <label class="text-xs text-slate-500">Name</label>
+            <input pInputText formControlName="name" class="w-full mt-1" placeholder="e.g. doc-signing-prod" />
+        </div>
+
+        <div>
+            <label class="text-xs text-slate-500">Purpose</label>
+            <p-select class="w-full mt-1" [options]="keyPurposes" formControlName="purpose"
+                placeholder="Select a purpose" optionLabel="label" optionValue="value"></p-select>
+        </div>
+
+        <div>
+            <label class="text-xs text-slate-500">Allowed mechanisms</label>
+            <p-autocomplete class="w-full mt-1" formControlName="allowedMechanisms"
+                [suggestions]="filteredMechanisms" [multiple]="true" (completeMethod)="searchMechanisms($event)"
+                appendTo="body"></p-autocomplete>
+            <div class="mt-1 text-xs text-slate-500">You can type any PKCS#11 mechanism names.</div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button pButton type="button" label="Cancel" class="p-button-secondary" (click)="close()"></button>
+            <button pButton type="button" label="Create" (click)="submit()"></button>
+        </div>
+    </div>
+</p-dialog>

@@ -1,16 +1,13 @@
-﻿using CryptoManager.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CryptoManager.Domain.ValueObjects;
+using System.Security.Cryptography.X509Certificates;
 
-namespace CryptoManager.Application.Abstractions
+namespace CryptoManager.Application.Abstractions;
+
+public interface IHsmProvider
 {
-    public interface IHsmProvider
-    {
-        Task<(ProviderRef ProviderRef, PublicKeyMaterial PublicKey)> CreateSigningKeyAsync(string KeyName, Mechanism Mechanism);
-        Task<PublicKeyMaterial> GetPublicKeyAsync(ProviderRef providerRef);
-        Task<byte[]> SignDigestAsync(ProviderRef providerRef, Mechanism mechanism, byte[] digest);
-    }
+    Task<(ProviderRef ProviderRef, PublicKeyMaterial PublicKey)> CreateSigningKeyAsync(string KeyName, Mechanism Mechanism);
+    Task<PublicKeyMaterial> GetPublicKeyAsync(ProviderRef providerRef);
+    Task<byte[]> SignDigestAsync(ProviderRef providerRef, Mechanism mechanism, byte[] digest);
+    Task DestroyPrivateKeyAsync(ProviderRef providerRef);
+    Task<X509Certificate2> GetSigningCertificateAsync(ProviderRef providerRef);
 }

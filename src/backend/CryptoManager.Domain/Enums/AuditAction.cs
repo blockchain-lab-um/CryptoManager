@@ -7,5 +7,6 @@ public enum AuditAction
     DisableKey = 3,
     DeleteKey = 4,
     Sign = 5,
-    GetPublicKey = 6
+    GetPublicKey = 6,
+    SignFile = 7
 }

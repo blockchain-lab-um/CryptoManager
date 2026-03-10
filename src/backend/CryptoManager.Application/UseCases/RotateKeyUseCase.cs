@@ -38,6 +38,8 @@ namespace CryptoManager.Application.UseCases
             if (key.State != KeyState.Active)
                 throw new DomainException($"Key '{key.Name}' is not active and cannot be rotated.");
 
+            var currentKeyVersion = key.GetPrimaryVersion();
+
             var nextVersion = key.Versions.Count == 0 ? 1 : key.Versions.Max(v => v.Version) + 1;
 
             var primaryMechanismName = key.AllowedMechanisms.FirstOrDefault()
@@ -51,6 +53,8 @@ namespace CryptoManager.Application.UseCases
                 created = await _hsmProvider.CreateSigningKeyAsync(
                     KeyName: key.Name,
                     Mechanism: primaryMechanism);
+
+                await _hsmProvider.DestroyPrivateKeyAsync(currentKeyVersion.ProviderRef);
             }
             catch (Exception ex)
             {
@@ -70,6 +74,7 @@ namespace CryptoManager.Application.UseCases
             );
 
             key.PromoteVersionToPrimary(newKv.Version);
+            key.RetireVersion(currentKeyVersion.Version);
 
             await _keyRepository.UpdateAsync(key);
 

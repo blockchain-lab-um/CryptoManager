@@ -1,0 +1,35 @@
+<p-dialog [visible]="visible()" (visibleChange)="visibleChange.emit($event)" [modal]="true" [draggable]="false"
+    [resizable]="false" header="Public key" [style]="{ width: '52rem' }">
+
+    @if (error(); as err) {
+    <p-message severity="error" [text]="err" class="mb-4 block"></p-message>
+    }
+
+    <div class="text-sm text-slate-600">
+        <div class="font-mono text-xs text-slate-500">{{ key()?.keyId }}</div>
+    </div>
+
+    <div class="mt-4 flex items-end gap-3" [formGroup]="form">
+        <div class="grow">
+            <label class="text-xs text-slate-500">Version (optional)</label>
+            <p-inputNumber formControlName="version" class="w-full mt-1"></p-inputNumber>
+        </div>
+        <button pButton type="button" label="Fetch" (click)="fetch()"></button>
+    </div>
+
+    @if (publicPem() !== null) {
+    <div class="mt-4">
+        <div class="flex items-center justify-between">
+            <div class="text-xs text-slate-500">PEM</div>
+            <div>
+                <button pButton type="button" icon="pi pi-download" class="p-button-text p-button-sm"
+                    aria-label="Download PEM" (click)="download()"></button>
+                <button pButton type="button" icon="pi pi-copy" class="p-button-text p-button-sm"
+                    aria-label="Copy PEM" (click)="copy(publicPem())"></button>
+            </div>
+        </div>
+        <textarea pTextarea rows="10" class="w-full mt-2 font-mono text-xs"
+            [readonly]="true">{{ publicPem() }}</textarea>
+    </div>
+    }
+</p-dialog>

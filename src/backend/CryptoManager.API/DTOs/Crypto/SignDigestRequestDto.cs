@@ -15,8 +15,5 @@ namespace CryptoManager.API.DTOs.Crypto
         /// <summary>Digest as base64 (MVP: SHA-256 digest length must be 32 bytes).</summary>
         [Required, MinLength(1)]
         public string DigestBase64 { get; init; } = default!;
-
-        /// <summary>Optional key version number. If omitted, uses primary.</summary>
-        public int? Version { get; init; }
     }
 }

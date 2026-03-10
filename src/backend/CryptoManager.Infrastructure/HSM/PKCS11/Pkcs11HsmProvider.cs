@@ -2,24 +2,25 @@
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
 using Net.Pkcs11Interop.Common;
+using System.Security.Cryptography.X509Certificates;
 using Net.Pkcs11Interop.HighLevelAPI;
 using Net.Pkcs11Interop.HighLevelAPI40.MechanismParams;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace CryptoManager.Infrastructure.HSM.PKCS11
 {
-    public sealed class YubiHsmPkcs11Provider : IHsmProvider, IDisposable
+    public sealed class Pkcs11HsmProvider : IHsmProvider, IDisposable
     {
         private readonly Pkcs11Options _opt;
         private readonly IPkcs11Library _pkcs11;
 
-        public YubiHsmPkcs11Provider(Pkcs11Options opt)
+        public Pkcs11HsmProvider(IOptions<Pkcs11Options> opt)
         {
-            _opt = opt;
+            _opt = opt.Value;
             Pkcs11InteropFactories factories = new Pkcs11InteropFactories();
-            Console.WriteLine(File.Exists(_opt.LibraryPath));
-            _pkcs11 = new Pkcs11InteropFactories().Pkcs11LibraryFactory.LoadPkcs11Library(factories, opt.LibraryPath, AppType.SingleThreaded);
+            _pkcs11 = new Pkcs11InteropFactories().Pkcs11LibraryFactory.LoadPkcs11Library(factories, opt.Value.LibraryPath, AppType.SingleThreaded);
         }
 
         public void Dispose() => _pkcs11.Dispose();
@@ -33,7 +34,7 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
                 if (string.IsNullOrWhiteSpace(KeyName))
                     throw new DomainException("KeyName must not be empty.");
 
-                // MVP: only RSA-PSS-SHA256
+                // only RSA-PSS-SHA256 for now
                 if (!string.Equals(Mechanism.Name, "RSA_PSS_SHA256", StringComparison.OrdinalIgnoreCase))
                     throw new DomainException($"Unsupported mechanism '{Mechanism.Name}'. MVP supports only RSA_PSS_SHA256.");
 
@@ -45,41 +46,39 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
                 var ckaId = RandomNumberGenerator.GetBytes(16);
                 var label = $"{KeyName}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
 
-                // --- Public template (RSA) ---
                 var pubTemplate = new List<IObjectAttribute>
-            {
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_CLASS, CKO.CKO_PUBLIC_KEY),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_KEY_TYPE, CKK.CKK_RSA),
+                {
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_CLASS, CKO.CKO_PUBLIC_KEY),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_KEY_TYPE, CKK.CKK_RSA),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_TOKEN, true),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PRIVATE, false),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_TOKEN, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PRIVATE, false),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_LABEL, label),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_ID, ckaId),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_LABEL, label),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_ID, ckaId),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_VERIFY, true),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_MODULUS_BITS, (ulong)_opt.RsaKeySizeBits),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PUBLIC_EXPONENT, new byte[] { 0x01, 0x00, 0x01 }) // 65537
-            };
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_VERIFY, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_MODULUS_BITS, (ulong)_opt.RsaKeySizeBits),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PUBLIC_EXPONENT, new byte[] { 0x01, 0x00, 0x01 }) // 65537
+                };
 
-                // --- Private template (RSA) ---
                 var privTemplate = new List<IObjectAttribute>
-            {
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_CLASS, CKO.CKO_PRIVATE_KEY),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_KEY_TYPE, CKK.CKK_RSA),
+                {
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_CLASS, CKO.CKO_PRIVATE_KEY),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_KEY_TYPE, CKK.CKK_RSA),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_TOKEN, true),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PRIVATE, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_TOKEN, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_PRIVATE, true),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_LABEL, label),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_ID, ckaId),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_LABEL, label),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_ID, ckaId),
 
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_SIGN, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_SIGN, true),
 
-                // Strong defaults (device-dependent; YubiHSM should enforce non-extractability anyway)
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_SENSITIVE, true),
-                session.Factories.ObjectAttributeFactory.Create(CKA.CKA_EXTRACTABLE, false)
-            };
+                    // Strong defaults (device-dependent; YubiHSM should enforce non-extractability anyway)
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_SENSITIVE, true),
+                    session.Factories.ObjectAttributeFactory.Create(CKA.CKA_EXTRACTABLE, false)
+                };
 
                 var genMech = session.Factories.MechanismFactory.Create(CKM.CKM_RSA_PKCS_KEY_PAIR_GEN);
 
@@ -96,6 +95,26 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
                 );
 
                 return (pref, new PublicKeyMaterial(publicPem));
+            });
+        }
+
+        public Task DestroyPrivateKeyAsync(ProviderRef providerRef)
+        {
+            return Task.Run(() =>
+            {
+                var info = ParseProviderRef(providerRef);
+
+                var slot = FindSlotByTokenLabel(_pkcs11, info.TokenLabel);
+                using var session = slot.OpenSession(SessionType.ReadWrite);
+                session.Login(CKU.CKU_USER, _opt.UserPin);
+
+                var ckaId = Convert.FromHexString(info.IdHex);
+                var privKey = FindPrivateKeyById(session, ckaId)
+                    ?? throw new DomainException("Private key not found in token for given ProviderRef.");
+
+                session.DestroyObject(privKey);
+
+                session.Logout();
             });
         }
 
@@ -118,6 +137,12 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
                 session.Logout();
                 return new PublicKeyMaterial(pem);
             });
+        }
+
+        public Task<X509Certificate2> GetSigningCertificateAsync(ProviderRef providerRef)
+        {
+            throw new NotImplementedException(
+                "Certificate retrieval from PKCS#11 token is not implemented in this MVP. Use SoftHsmProvider for development.");
         }
 
         public Task<byte[]> SignDigestAsync(ProviderRef providerRef, Mechanism mechanism, byte[] digest)
@@ -159,7 +184,6 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
             });
         }
 
-        // ---------------- Helpers ----------------
 
         private static ISlot FindSlotByTokenLabel(IPkcs11Library pkcs11, string tokenLabel)
         {
@@ -167,18 +191,15 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
             if (slots.Count == 0)
                 throw new DomainException("No PKCS#11 token present.");
 
-            var slot = slots[0];
+            foreach (var slot in pkcs11.GetSlotList(SlotsType.WithTokenPresent))
+            {
+                var ti = slot.GetTokenInfo();
+                var label = (ti.Label ?? string.Empty).Trim();
+                if (string.Equals(label, tokenLabel, StringComparison.Ordinal))
+                    return slot;
+            }
 
-            return slot;
-            //foreach (var slot in pkcs11.GetSlotList(SlotsType.WithTokenPresent))
-            //{
-            //    var ti = slot.GetTokenInfo();
-            //    var label = (ti.Label ?? string.Empty).Trim();
-            //    if (string.Equals(label, tokenLabel, StringComparison.Ordinal))
-            //        return slot;
-            //}
-
-            //throw new DomainException($"Token with label '{tokenLabel}' not found.");
+            throw new DomainException($"Token with label '{tokenLabel}' not found.");
         }
 
         private static IObjectHandle? FindPrivateKeyById(ISession session, byte[] ckaId)
@@ -241,7 +262,6 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
             if (!string.Equals(providerRef.ProviderType, "PKCS11", StringComparison.OrdinalIgnoreCase))
                 throw new DomainException($"ProviderRef.Provider must be 'PKCS11', got '{providerRef.ProviderType}'.");
 
-            // reference format: token=...;id=...;label=...
             var parts = providerRef.Reference.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
             string? token = null;

@@ -5,32 +5,38 @@ using CryptoManager.Domain.Entities;
 using CryptoManager.Domain.Enums;
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CryptoManager.Application.UseCases
 {
-    public sealed class SignDigestUseCase
+    public sealed class SignFileUseCase
     {
         private readonly IKeyRepository _keyRepository;
-        private readonly IHsmProvider _hsmProvider;
+        private readonly ISignedArtifactBuilder _artifactBuilder;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
 
-        public SignDigestUseCase(
+        public SignFileUseCase(
             IKeyRepository keyRepository,
-            IHsmProvider hsmProvider,
+            ISignedArtifactBuilder artifactBuilder,
             IAuditSink auditSink,
             IClock clock)
         {
             _keyRepository = keyRepository;
-            _hsmProvider = hsmProvider;
+            _artifactBuilder = artifactBuilder;
             _auditSink = auditSink;
             _clock = clock;
         }
 
-        public async Task<SignDigestResult> ExecuteAsync(
-            SignDigestCommand command,
+        public async Task<SignFileResult> ExecuteAsync(
+            SignFileCommand command,
             string actor,
-            string? requestId)
+            string? requestId,
+            CancellationToken ct = default)
         {
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
@@ -47,42 +53,43 @@ namespace CryptoManager.Application.UseCases
                 throw new DomainException(
                     $"Mechanism '{command.Mechanism.Name}' is not allowed for key '{key.Name}'.");
 
-            ValidateDigestLength(command.Digest, command.Mechanism);
-
-            byte[] signature;
+            SignedArtifact signed;
             try
             {
-                signature = await _hsmProvider.SignDigestAsync(
+                signed = await _artifactBuilder.SignAsync(
                     keyVersion.ProviderRef,
                     command.Mechanism,
-                    command.Digest);
+                    command.OriginalFileName,
+                    command.FileBytes,
+                    ct);
             }
             catch (Exception ex)
             {
-                await WriteAuditAsync(
-                    success: false,
-                    error: ex.Message);
+                await WriteAuditAsync(success: false, error: ex.Message);
                 throw;
             }
 
             var auditId = await WriteAuditAsync(success: true);
 
-            return new SignDigestResult(
+            return new SignFileResult(
                 KeyId: key.Id,
                 KeyVersion: keyVersion.Version,
                 Mechanism: command.Mechanism,
-                SignatureEncoding: command.Mechanism.SignatureEncoding,
-                Signature: signature,
+                SignedFormat: signed.Format,
+                OutputFileName: signed.OutputFileName,
+                OutputContentType: signed.OutputContentType,
+                SignedFileBytes: signed.Bytes,
                 AuditEventId: auditId
             );
 
             async Task<AuditEventId> WriteAuditAsync(bool success, string? error = null)
             {
+                // Add a new action if you want: AuditAction.SignFile
                 var evt = new AuditEvent(
                     AuditEventId.New(),
                     _clock.UtcNow,
                     actor,
-                    AuditAction.Sign,
+                    AuditAction.SignFile,
                     key.Id,
                     keyVersion.Version,
                     command.Mechanism,
@@ -95,12 +102,5 @@ namespace CryptoManager.Application.UseCases
                 return evt.Id;
             }
         }
-
-        private static void ValidateDigestLength(byte[] digest, Mechanism mechanism)
-        {
-            if (mechanism.HashAlgorithm == "SHA256" && digest.Length != 32)
-                throw new DomainException("Invalid digest length for SHA-256.");
-        }
     }
-
 }

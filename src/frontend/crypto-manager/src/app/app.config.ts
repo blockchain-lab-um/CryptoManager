@@ -4,6 +4,7 @@ import { providePrimeNG } from 'primeng/config';
 import { provideRouter } from '@angular/router';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
+import { MessageService } from 'primeng/api';
 import { routes } from './app.routes';
 
 const Noir = definePreset(Aura, {
@@ -57,6 +58,7 @@ const Noir = definePreset(Aura, {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    MessageService,
     provideRouter(routes),
     provideAnimationsAsync(),
     providePrimeNG({

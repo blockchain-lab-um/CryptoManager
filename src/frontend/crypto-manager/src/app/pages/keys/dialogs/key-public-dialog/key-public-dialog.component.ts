@@ -5,11 +5,12 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageModule } from 'primeng/message';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { TextareaModule } from 'primeng/textarea';
 
-import { CryptoManagerApi } from '../../../../core/api/cryptomanager-api.service';
 import { CryptoService } from '../../../../core/services/crypto.service';
 import { KeySummaryDto } from '../../../../core/api/models';
+import { KeysService } from '../../keys.service';
 
 @Component({
   selector: 'app-key-public-dialog',
@@ -20,12 +21,13 @@ import { KeySummaryDto } from '../../../../core/api/models';
     InputNumberModule,
     TextareaModule,
     MessageModule,
+    ProgressSpinner,
   ],
   templateUrl: './key-public-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KeyPublicDialogComponent {
-  private api = inject(CryptoManagerApi);
+  private keysService = inject(KeysService);
   private cryptoService = inject(CryptoService);
   private fb = inject(FormBuilder);
 
@@ -33,6 +35,7 @@ export class KeyPublicDialogComponent {
   key = input<KeySummaryDto | null>(null);
   visibleChange = output<boolean>();
 
+  loading = signal(false);
   error = signal<string | null>(null);
   publicPem = signal<string | null>(null);
 
@@ -45,6 +48,7 @@ export class KeyPublicDialogComponent {
       if (this.visible()) {
         this.publicPem.set(null);
         this.error.set(null);
+        this.loading.set(false);
         this.form.reset({ version: null });
       }
     });
@@ -56,10 +60,20 @@ export class KeyPublicDialogComponent {
 
     const { version } = this.form.getRawValue();
     this.publicPem.set(null);
+    this.loading.set(true);
 
-    this.api.getPublicKey(keyId, version).subscribe({
-      next: (res) => this.publicPem.set(res.publicKeyPem ?? ''),
-      error: (e) => this.error.set(e?.error?.message ?? 'Failed to fetch public key'),
+    this.keysService.getPublicKey(keyId, version).subscribe({
+      next: (res) => {
+        this.publicPem.set(res.publicKeyPem ?? '');
+        this.error.set(null);
+      },
+      error: (err) => {
+        this.error.set('Failed to fetch public key: ' + (err?.error?.Error || err.message || 'Unknown error'));
+        this.loading.set(false);
+      },
+      complete: () => {
+        this.loading.set(false);
+      },
     });
   }
 

@@ -1,6 +1,7 @@
-﻿namespace CryptoManager.Application.DTOs;
+﻿using CryptoManager.Domain.ValueObjects;
 
-public class DeleteKeyCommand
-{
-    
-}
+namespace CryptoManager.Application.DTOs;
+
+public sealed record DeleteKeyCommand(
+    KeyId KeyId
+);

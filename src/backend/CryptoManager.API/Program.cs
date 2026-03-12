@@ -37,6 +37,7 @@ builder.Services.AddScoped<SignDigestUseCase>();
 builder.Services.AddScoped<GetPublicKeyUseCase>();
 builder.Services.AddScoped<ListKeysUseCase>();
 builder.Services.AddScoped<SignFileUseCase>();
+builder.Services.AddScoped<DeleteKeyUseCase>();
 
 builder.Services.AddScoped<ISignedArtifactBuilder, SignedArtifactBuilder>();
 builder.Services.AddScoped<IPadesSigner, PadesSigner>();
@@ -47,6 +48,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 

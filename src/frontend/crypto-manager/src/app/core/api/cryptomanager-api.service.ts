@@ -37,6 +37,10 @@ export class CryptoManagerApi {
     return this.http.post<SignDigestResponseDto>(`${this.base}/api/Crypto/sign`, body);
   }
 
+  deleteKey(keyId: string) {
+    return this.http.delete(`${this.base}/api/Keys/${encodeURIComponent(keyId)}`);
+  }
+
   signFile(dto: SignFileRequestDto) {
     const formData = new FormData();
     formData.append('keyId', dto.keyId);

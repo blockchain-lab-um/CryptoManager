@@ -17,17 +17,20 @@ namespace CryptoManager.API.Controllers
         private readonly RotateKeyUseCase _rotateKey;
         private readonly GetPublicKeyUseCase _getPublicKey;
         private readonly ListKeysUseCase _listKeys;
+        private readonly DeleteKeyUseCase _deleteKey;
 
         public KeysController(
             CreateKeyUseCase createKey,
             RotateKeyUseCase rotateKey,
             GetPublicKeyUseCase getPublicKey,
-            ListKeysUseCase listKeys)
+            ListKeysUseCase listKeys,
+            DeleteKeyUseCase deleteKey)
         {
             _createKey = createKey;
             _rotateKey = rotateKey;
             _getPublicKey = getPublicKey;
             _listKeys = listKeys;
+            _deleteKey = deleteKey;
         }
 
         // GET /api/keys
@@ -136,6 +139,20 @@ namespace CryptoManager.API.Controllers
             });
         }
 
+        [HttpDelete("{keyId}")]
+        public async Task<OkResult> Delete([FromRoute] string keyId, CancellationToken ct)
+        {
+            var kid = new KeyId(Guid.Parse(keyId));
+
+            var cmd = new DeleteKeyCommand(kid);
+            var actor = GetActor();
+            var requestId = HttpContext.TraceIdentifier;
+
+            await _deleteKey.ExecuteAsync(cmd, actor, requestId);
+            
+            return Ok();
+        }
+        
         private static KeyPurpose ParsePurpose(string? purpose)
         {
             if (string.IsNullOrWhiteSpace(purpose))

@@ -6,9 +6,10 @@ import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TextareaModule } from 'primeng/textarea';
 
-import { CryptoManagerApi } from '../../../../core/api/cryptomanager-api.service';
+import { AppMessenger } from '../../../../core/services/app-messenger';
 import { CryptoService } from '../../../../core/services/crypto.service';
 import { KeySummaryDto, RotateKeyResponseDto } from '../../../../core/api/models';
+import { KeysService } from '../../keys.service';
 
 @Component({
   selector: 'app-key-rotate-dialog',
@@ -23,7 +24,8 @@ import { KeySummaryDto, RotateKeyResponseDto } from '../../../../core/api/models
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KeyRotateDialogComponent {
-  private api = inject(CryptoManagerApi);
+  private keysService = inject(KeysService);
+  private appMessenger = inject(AppMessenger);
   private cryptoService = inject(CryptoService);
 
   visible = input.required<boolean>();
@@ -54,14 +56,18 @@ export class KeyRotateDialogComponent {
     if (!keyId) return;
 
     this.rotating.set(true);
-    this.api.rotateKey(keyId).subscribe({
+    this.keysService.rotateKey(keyId).subscribe({
       next: (res) => {
         this.rotateResult.set(res);
-        this.rotating.set(false);
+        this.error.set(null);
         this.rotated.emit();
+        this.appMessenger.showMessage('success', 'Key rotated', `Key ${keyId} has been rotated to version ${res.newPrimaryVersion}.`);
       },
-      error: (e) => {
-        this.error.set(e?.error?.message ?? 'Failed to rotate key');
+      error: (err) => {
+        this.error.set('Failed to rotate key: ' + (err?.error?.Error || err.message || 'Unknown error'));
+        this.rotating.set(false);
+      },
+      complete: () => {
         this.rotating.set(false);
       },
     });

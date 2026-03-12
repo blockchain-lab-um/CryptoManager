@@ -45,5 +45,11 @@ namespace CryptoManager.Infrastructure.Persistence.EntityFramework
             dbContext.Keys.Update(key);
             await Task.CompletedTask;
         }
+        
+        public Task DeleteAsync(Key key)
+        {
+            dbContext.Keys.Remove(key);
+            return Task.CompletedTask;
+        }
     }
 }

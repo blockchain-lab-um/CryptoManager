@@ -1,0 +1,50 @@
+services:
+    db:                                                                                                                
+        image: postgres:17
+        restart: unless-stopped
+        environment:                                                                                                             
+            POSTGRES_DB: cryptomanager
+            POSTGRES_USER: cryptouser
+            POSTGRES_PASSWORD: cryptopass
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        networks:
+            - app-net
+        healthcheck:                                                                                                     
+            test: ["CMD-SHELL", "pg_isready -U cryptouser -d cryptomanager"]
+            interval: 5s
+            retries: 10
+
+    api:
+        build:
+            context: ./src/backend
+            dockerfile: CryptoManager.API/Dockerfile
+        ports:
+            - "8080:8080"
+        environment:
+            ASPNETCORE_ENVIRONMENT: Development
+            ASPNETCORE_URLS: http://+:8080
+            ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=cryptomanager;Username=postgres;Password=T3st1ranj3123."
+        expose:
+            - "8080"
+        networks:
+            - app-net
+        depends_on:
+            db:
+                condition: service_healthy
+
+    frontend:
+        build:
+            context: ./src/frontend/crypto-manager
+        ports:
+            - "99:80"
+        networks:
+            - app-net
+        depends_on:
+            - api
+volumes:
+    pgdata:
+    
+networks:
+  app-net:
+    driver: bridge

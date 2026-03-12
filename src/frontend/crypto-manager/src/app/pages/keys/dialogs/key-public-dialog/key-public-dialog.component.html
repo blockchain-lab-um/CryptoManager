@@ -14,10 +14,14 @@
             <label class="text-xs text-slate-500">Version (optional)</label>
             <p-inputNumber formControlName="version" class="w-full mt-1"></p-inputNumber>
         </div>
-        <button pButton type="button" label="Fetch" (click)="fetch()"></button>
+        <button pButton type="button" label="Fetch" [disabled]="loading()" (click)="fetch()"></button>
     </div>
 
-    @if (publicPem() !== null) {
+    @if (loading()) {
+    <div class="mt-6 flex w-full items-center justify-center py-6">
+        <p-progress-spinner></p-progress-spinner>
+    </div>
+    } @else if (publicPem() !== null) {
     <div class="mt-4">
         <div class="flex items-center justify-between">
             <div class="text-xs text-slate-500">PEM</div>

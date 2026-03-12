@@ -1,0 +1,45 @@
+services:
+    db:
+      image: postgres:17
+      container_name: cryptomanager-db
+      restart: unless-stopped
+      env_file: .env
+      volumes:
+        - ./pgdata:/var/lib/postgresql/data
+      networks:
+        - app-net
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+        interval: 5s
+        retries: 10
+
+    api:
+      image: cryptomanager/api:latest
+      container_name: cryptomanager-api
+      restart: unless-stopped
+      ports:
+        - "127.0.0.1:5000:8080"
+      env_file: .env
+      environment:
+        ASPNETCORE_ENVIRONMENT: Production
+        ASPNETCORE_URLS: http://+:8080
+      networks:
+        - app-net
+      depends_on:
+        db:
+          condition: service_healthy
+
+    frontend:
+      image: cryptomanager/frontend:latest
+      container_name: cryptomanager-frontend
+      restart: unless-stopped
+      ports:
+        - "127.0.0.1:3000:80"
+      networks:
+        - app-net
+      depends_on:
+        - api
+
+  networks:
+    app-net:
+      driver: bridge

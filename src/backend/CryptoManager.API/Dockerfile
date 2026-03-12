@@ -1,30 +1,18 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
-
-# This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["CryptoManager/CryptoManager.csproj", "CryptoManager/"]
-RUN dotnet restore "./CryptoManager/CryptoManager.csproj"
+COPY ["CryptoManager.API/CryptoManager.API.csproj", "CryptoManager.API/"]
+COPY ["CryptoManager.Application/CryptoManager.Application.csproj", "CryptoManager.Application/"]
+COPY ["CryptoManager.Domain/CryptoManager.Domain.csproj", "CryptoManager.Domain/"]
+COPY ["CryptoManager.Infrastructure/CryptoManager.Infrastructure.csproj", "CryptoManager.Infrastructure/"]
+RUN dotnet restore "CryptoManager.API/CryptoManager.API.csproj"
 COPY . .
-WORKDIR "/src/CryptoManager"
-RUN dotnet build "./CryptoManager.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish "CryptoManager.API/CryptoManager.API.csproj" -c Release -o /app/publish /p:UseAppHost=false       
 
-# This stage is used to publish the service project to be copied to the final stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./CryptoManager.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "CryptoManager.dll"]
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "CryptoManager.API.dll"]

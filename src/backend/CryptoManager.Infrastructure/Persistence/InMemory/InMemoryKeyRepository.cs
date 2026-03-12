@@ -51,5 +51,12 @@ namespace CryptoManager.Infrastructure.Persistence.InMemory
             _idByName[key.Name] = key.Id.Value;
             return Task.CompletedTask;
         }
+        
+        public Task DeleteAsync(Key key)
+        {
+            _byId.TryRemove(key.Id.Value, out _);
+            _idByName.TryRemove(key.Name, out _);
+            return Task.CompletedTask;
+        }
     }
 }

@@ -15,5 +15,6 @@ namespace CryptoManager.Application.Abstractions
         Task<IReadOnlyList<Key>> ListAllAsync();
         Task AddAsync(Key key);
         Task UpdateAsync(Key key);
+        Task DeleteAsync(Key key);
     }
 }

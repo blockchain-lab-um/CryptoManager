@@ -6,9 +6,11 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { SelectModule } from 'primeng/select';
 
-import { CryptoManagerApi } from '../../../../core/api/cryptomanager-api.service';
+import { AppMessenger } from '../../../../core/services/app-messenger';
+import { KeysService } from '../../keys.service';
 
 @Component({
   selector: 'app-key-create-dialog',
@@ -20,18 +22,21 @@ import { CryptoManagerApi } from '../../../../core/api/cryptomanager-api.service
     AutoCompleteModule,
     SelectModule,
     MessageModule,
+    ProgressSpinner,
   ],
   templateUrl: './key-create-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KeyCreateDialogComponent {
-  private api = inject(CryptoManagerApi);
+  private keysService = inject(KeysService);
+  private appMessenger = inject(AppMessenger);
   private fb = inject(FormBuilder);
 
   visible = input.required<boolean>();
   visibleChange = output<boolean>();
   created = output<void>();
 
+  loading = signal(false);
   error = signal<string | null>(null);
 
   form = this.fb.group({
@@ -62,16 +67,25 @@ export class KeyCreateDialogComponent {
 
     const { name, purpose, allowedMechanisms } = this.form.getRawValue();
 
-    this.api.createKey({
+    this.loading.set(true);
+    this.keysService.createKey({
       name: name!,
       purpose: purpose!,
       allowedMechanisms: allowedMechanisms ?? [],
     }).subscribe({
       next: () => {
-        this.close();
         this.created.emit();
+        this.error.set(null);
+        this.close();
+        this.appMessenger.showMessage('success', 'Key created', `Key "${name}" has been created successfully.`);
       },
-      error: (e) => this.error.set(e?.error?.message ?? 'Failed to create key'),
+      error: (err) => {
+        this.error.set('Failed to create key: ' + (err?.error?.Error || err.message || 'Unknown error'));
+        this.loading.set(false);
+      },
+      complete: () => {
+        this.loading.set(false);
+      },
     });
   }
 }

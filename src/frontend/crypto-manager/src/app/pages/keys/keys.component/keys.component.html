@@ -21,14 +21,14 @@
                     (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
             </span>
 
-            <button pButton type="button" icon="pi pi-refresh" class="p-button-text"
-                aria-label="Refresh" (click)="keysService.reload()"></button>
+            <button pButton type="button" icon="pi pi-refresh" class="p-button-text" aria-label="Refresh"
+                (click)="keysService.reload()"></button>
         </div>
     </div>
 
     <p-table #dt class="mt-4" [value]="keysService.keysResource.value() ?? []"
-        [loading]="keysService.keysResource.isLoading()" [paginator]="true" [rows]="10"
-        sortField="createdAt" [sortOrder]="-1">
+        [loading]="keysService.keysResource.isLoading()" [paginator]="true" [rows]="10" sortField="createdAt"
+        [sortOrder]="-1">
         <ng-template pTemplate="header">
             <tr>
                 <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
@@ -55,8 +55,7 @@
                 <td class="text-slate-700">{{ k.purpose || '—' }}</td>
 
                 <td>
-                    <p-tag [value]="k.state || 'unknown'"
-                        [severity]="keysService.stateSeverity(k.state)"></p-tag>
+                    <p-tag [value]="k.state || 'unknown'" [severity]="keysService.stateSeverity(k.state)"></p-tag>
                 </td>
 
                 <td class="text-right">{{ k.versionCount }}</td>
@@ -69,8 +68,10 @@
                         (click)="openPublic(k)"></button>
                     <button pButton type="button" label="Rotate" class="p-button-text p-button-sm"
                         (click)="openRotate(k)"></button>
-                    <a pButton type="button" label="Sign" class="p-button-text p-button-sm"
-                        [routerLink]="['/sign']" [queryParams]="{ keyId: k.keyId }"></a>
+                    <a pButton type="button" label="Sign" class="p-button-text p-button-sm" [routerLink]="['/sign']"
+                        [queryParams]="{ keyId: k.keyId }"></a>
+                    <button pButton type="button" label="Delete" class="p-button-text p-button-sm"
+                        (click)="openDelete(k)"></button>
                 </td>
             </tr>
         </ng-template>
@@ -83,21 +84,16 @@
     </p-table>
 </app-card>
 
-<app-key-create-dialog
-    [visible]="showCreate()"
-    (visibleChange)="showCreate.set($event)"
+<app-key-create-dialog [visible]="showCreate()" (visibleChange)="showCreate.set($event)"
     (created)="keysService.reload()">
 </app-key-create-dialog>
 
-<app-key-public-dialog
-    [visible]="showPublic()"
-    (visibleChange)="showPublic.set($event)"
-    [key]="selectedKey()">
+<app-key-public-dialog [visible]="showPublic()" (visibleChange)="showPublic.set($event)" [key]="selectedKey()">
 </app-key-public-dialog>
 
-<app-key-rotate-dialog
-    [visible]="showRotate()"
-    (visibleChange)="showRotate.set($event)"
-    [key]="selectedKey()"
+<app-key-rotate-dialog [visible]="showRotate()" (visibleChange)="showRotate.set($event)" [key]="selectedKey()"
     (rotated)="keysService.reload()">
 </app-key-rotate-dialog>
+
+<app-key-delete-dialog [visible]="showDelete()" (visibleChange)="showDelete.set($event)" [key]="selectedKey()"
+    (deleted)="keysService.reload()">

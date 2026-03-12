@@ -5,6 +5,11 @@
     <p-message severity="error" [text]="err" class="mb-4 block"></p-message>
     }
 
+    @if (loading()) {
+    <div class="flex w-full items-center justify-center py-10">
+        <p-progress-spinner></p-progress-spinner>
+    </div>
+    } @else {
     <div class="space-y-4" [formGroup]="form">
         <div>
             <label class="text-xs text-slate-500">Name</label>
@@ -30,4 +35,5 @@
             <button pButton type="button" label="Create" (click)="submit()"></button>
         </div>
     </div>
+    }
 </p-dialog>

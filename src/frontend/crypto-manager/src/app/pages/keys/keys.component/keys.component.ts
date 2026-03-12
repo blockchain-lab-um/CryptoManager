@@ -13,6 +13,7 @@ import { Card } from '../../../core/components/card/card';
 import { KeyCreateDialogComponent } from '../dialogs/key-create-dialog/key-create-dialog.component';
 import { KeyPublicDialogComponent } from '../dialogs/key-public-dialog/key-public-dialog.component';
 import { KeyRotateDialogComponent } from '../dialogs/key-rotate-dialog/key-rotate-dialog.component';
+import { KeyDeleteDialog } from '../dialogs/key-delete-dialog/key-delete-dialog';
 
 @Component({
   imports: [
@@ -26,6 +27,7 @@ import { KeyRotateDialogComponent } from '../dialogs/key-rotate-dialog/key-rotat
     KeyCreateDialogComponent,
     KeyPublicDialogComponent,
     KeyRotateDialogComponent,
+    KeyDeleteDialog,
   ],
   templateUrl: './keys.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,6 +38,7 @@ export class KeysComponent {
   showCreate = signal(false);
   showPublic = signal(false);
   showRotate = signal(false);
+  showDelete = signal(false);
   selectedKey = signal<KeySummaryDto | null>(null);
 
   openCreate() {
@@ -50,6 +53,11 @@ export class KeysComponent {
   openRotate(key: KeySummaryDto) {
     this.selectedKey.set(key);
     this.showRotate.set(true);
+  }
+
+  openDelete(key: KeySummaryDto) {
+    this.selectedKey.set(key);
+    this.showDelete.set(true);
   }
 
   copy(text: string | null | undefined) {

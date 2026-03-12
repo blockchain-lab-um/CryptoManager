@@ -36,6 +36,12 @@ namespace CryptoManager.Infrastructure.Persistence.InMemory
             return Task.FromResult(keys);
         }
 
+        public Task<IReadOnlyList<Key>> ListByOwnerAsync(string ownerId)
+        {
+            IReadOnlyList<Key> keys = _byId.Values.Where(k => k.OwnerId == ownerId).ToList();
+            return Task.FromResult(keys);
+        }
+
         public Task AddAsync(Key key)
         {
             if (!_byId.TryAdd(key.Id.Value, key))

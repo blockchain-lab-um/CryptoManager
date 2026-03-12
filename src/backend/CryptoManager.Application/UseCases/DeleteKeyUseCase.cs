@@ -1,4 +1,4 @@
-﻿using CryptoManager.Application.Abstractions;
+using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Application.Exceptions;
 using CryptoManager.Domain.Entities;
@@ -14,23 +14,23 @@ public class DeleteKeyUseCase
     private readonly IAuditSink _auditSink;
     private readonly IClock _clock;
     private readonly IHsmProviderRegistry _hsmRegistry;
+    private readonly ICurrentUser _currentUser;
 
     public DeleteKeyUseCase(
         IKeyRepository keyRepository,
         IAuditSink auditSink,
         IClock clock,
-        IHsmProviderRegistry hsmRegistry)
+        IHsmProviderRegistry hsmRegistry,
+        ICurrentUser currentUser)
     {
         _keyRepository = keyRepository;
         _auditSink = auditSink;
         _clock = clock;
         _hsmRegistry = hsmRegistry;
+        _currentUser = currentUser;
     }
 
-    public async Task ExecuteAsync(
-        DeleteKeyCommand command,
-        string actor,
-        string? requestId)
+    public async Task ExecuteAsync(DeleteKeyCommand command)
     {
         var key = await _keyRepository.GetByIdAsync(command.KeyId)
                   ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
@@ -47,12 +47,12 @@ public class DeleteKeyUseCase
         var auditEvent = new AuditEvent(
             id: AuditEventId.New(),
             timestamp: _clock.UtcNow,
-            actor: actor,
+            actor: _currentUser.Actor,
             action: AuditAction.DeleteKey,
             keyId: key.Id,
             keyVersion: null,
             mechanism: null,
-            requestId,
+            requestId: null,
             success: true,
             error: null
         );

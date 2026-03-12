@@ -1,15 +1,10 @@
-﻿using CryptoManager.Application.Abstractions;
+using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Application.Exceptions;
 using CryptoManager.Domain.Entities;
 using CryptoManager.Domain.Enums;
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CryptoManager.Application.UseCases
 {
@@ -19,27 +14,31 @@ namespace CryptoManager.Application.UseCases
         private readonly ISignedArtifactBuilder _artifactBuilder;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
+        private readonly ICurrentUser _currentUser;
 
         public SignFileUseCase(
             IKeyRepository keyRepository,
             ISignedArtifactBuilder artifactBuilder,
             IAuditSink auditSink,
-            IClock clock)
+            IClock clock,
+            ICurrentUser currentUser)
         {
             _keyRepository = keyRepository;
             _artifactBuilder = artifactBuilder;
             _auditSink = auditSink;
             _clock = clock;
+            _currentUser = currentUser;
         }
 
         public async Task<SignFileResult> ExecuteAsync(
             SignFileCommand command,
-            string actor,
-            string? requestId,
             CancellationToken ct = default)
         {
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
+
+            if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
+                throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
 
             if (key.State != KeyState.Active)
                 throw new DomainException($"Key '{key.Name}' is not active.");
@@ -84,20 +83,18 @@ namespace CryptoManager.Application.UseCases
 
             async Task<AuditEventId> WriteAuditAsync(bool success, string? error = null)
             {
-                // Add a new action if you want: AuditAction.SignFile
                 var evt = new AuditEvent(
                     AuditEventId.New(),
                     _clock.UtcNow,
-                    actor,
+                    _currentUser.Actor,
                     AuditAction.SignFile,
                     key.Id,
                     keyVersion.Version,
                     command.Mechanism,
-                    requestId,
+                    null,
                     success,
                     error
                 );
-
                 await _auditSink.WriteAsync(evt);
                 return evt.Id;
             }

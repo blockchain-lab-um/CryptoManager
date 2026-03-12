@@ -3,12 +3,14 @@ using CryptoManager.Application.DTOs;
 using CryptoManager.Application.UseCases;
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CryptoManager.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize(Policy = "CanOperate")]
 public sealed class CryptoController : ControllerBase
 {
     private readonly SignDigestUseCase _signDigest;
@@ -40,13 +42,11 @@ public sealed class CryptoController : ControllerBase
             throw new DomainException("DigestBase64 is not valid base64.");
         }
 
-        var cmd = new SignDigestCommand(
+        var result = await _signDigest.ExecuteAsync(new SignDigestCommand(
             KeyId: kid,
             Mechanism: mechanism,
             Digest: digest
-        );
-
-        var result = await _signDigest.ExecuteAsync(cmd, GetActor(), HttpContext.TraceIdentifier);
+        ));
 
         return Ok(new SignDigestResponseDto
         {
@@ -83,8 +83,6 @@ public sealed class CryptoController : ControllerBase
                 OriginalFileName: dto.File.FileName,
                 OriginalContentType: dto.File.ContentType,
                 FileBytes: fileBytes),
-            GetActor(),
-            HttpContext.TraceIdentifier,
             ct);
 
         Response.Headers["X-Audit-Event-Id"] = result.AuditEventId.ToString();
@@ -98,13 +96,5 @@ public sealed class CryptoController : ControllerBase
             fileContents: result.SignedFileBytes,
             contentType: result.OutputContentType,
             fileDownloadName: result.OutputFileName);
-    }
-
-    private string GetActor()
-    {
-        if (User?.Identity?.IsAuthenticated == true)
-            return User.Identity!.Name ?? "authenticated-user";
-
-        return "dev";
     }
 }

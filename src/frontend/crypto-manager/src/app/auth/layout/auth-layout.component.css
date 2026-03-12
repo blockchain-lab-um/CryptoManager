@@ -1,0 +1,126 @@
+/* Fixed background — covers the full viewport, sits behind all other elements */
+.auth-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #f8fafc, #f0f9ff, #eef2ff);
+}
+
+/* Content — centres the login/register card in the viewport */
+.auth-content {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Subtle dot-grid overlay for a tech/crypto feel */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+/* ── Blobs ─────────────────────────────────────── */
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+/* Sky-200 — large, top-left */
+.blob-1 {
+  width: 600px;
+  height: 600px;
+  top: -15%;
+  left: -10%;
+  background: radial-gradient(circle at 40% 40%, rgba(186, 230, 253, 0.75), rgba(125, 211, 252, 0.3));
+  filter: blur(80px);
+  animation: float-1 22s ease-in-out infinite;
+}
+
+/* Indigo-200 — large, top-right */
+.blob-2 {
+  width: 520px;
+  height: 520px;
+  top: -12%;
+  right: -8%;
+  background: radial-gradient(circle at 60% 40%, rgba(199, 210, 254, 0.7), rgba(165, 180, 252, 0.3));
+  filter: blur(80px);
+  animation: float-2 18s ease-in-out infinite;
+}
+
+/* Slate-300 — medium, bottom-left */
+.blob-3 {
+  width: 420px;
+  height: 420px;
+  bottom: 2%;
+  left: 1%;
+  background: radial-gradient(circle at 50% 60%, rgba(203, 213, 225, 0.6), rgba(148, 163, 184, 0.2));
+  filter: blur(72px);
+  animation: float-3 15s ease-in-out infinite;
+}
+
+/* Violet-200 — medium, bottom-right */
+.blob-4 {
+  width: 380px;
+  height: 380px;
+  bottom: -8%;
+  right: 4%;
+  background: radial-gradient(circle at 55% 45%, rgba(221, 214, 254, 0.65), rgba(196, 181, 253, 0.25));
+  filter: blur(72px);
+  animation: float-4 20s ease-in-out infinite;
+}
+
+/* Sky-300 — small, centre — adds depth */
+.blob-5 {
+  width: 260px;
+  height: 260px;
+  top: calc(38% - 130px);
+  left: calc(52% - 130px);
+  background: radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.4), rgba(56, 189, 248, 0.1));
+  filter: blur(60px);
+  animation: float-5 13s ease-in-out infinite;
+}
+
+/* ── Keyframes ─────────────────────────────────── */
+
+@keyframes float-1 {
+  0%,  100% { transform: translate(0px,   0px)   scale(1);    }
+  30%       { transform: translate(55px, -70px)  scale(1.07); }
+  65%       { transform: translate(-30px, 45px)  scale(0.95); }
+}
+
+@keyframes float-2 {
+  0%,  100% { transform: translate(0px,   0px)   scale(1);    }
+  40%       { transform: translate(-65px, 55px)  scale(1.09); }
+  75%       { transform: translate(35px, -35px)  scale(0.92); }
+}
+
+@keyframes float-3 {
+  0%,  100% { transform: translate(0px,  0px)    scale(1);    }
+  25%       { transform: translate(45px, -45px)  scale(1.06); }
+  70%       { transform: translate(-28px, 35px)  scale(0.94); }
+}
+
+@keyframes float-4 {
+  0%,  100% { transform: translate(0px,   0px)   scale(0.96); }
+  50%       { transform: translate(-45px, -55px) scale(1.06); }
+}
+
+@keyframes float-5 {
+  0%,  100% { transform: translate(0px,  0px)    scale(1);    }
+  33%       { transform: translate(65px, -45px)  scale(1.12); }
+  66%       { transform: translate(-35px, 55px)  scale(0.88); }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .blob { animation: none; }
+}

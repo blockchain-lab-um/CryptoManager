@@ -42,6 +42,7 @@ namespace CryptoManager.API.Middleware
             {
                 // Application / Domain
                 NotFoundException nf => (HttpStatusCode.NotFound, nf.Message),
+                ForbiddenException fe => (HttpStatusCode.Forbidden, fe.Message),
                 DomainException de => (HttpStatusCode.BadRequest, de.Message),
                 HsmUnavailableException hu => (HttpStatusCode.ServiceUnavailable, hu.Message),
 

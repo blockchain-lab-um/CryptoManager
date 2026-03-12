@@ -23,16 +23,20 @@ public sealed class Key
     public IReadOnlyList<KeyVersion> Versions => _versions;
 
     public DateTimeOffset CreatedAt { get; private set; }
-    public string CreatedBy { get; private set; } = default!; // actor id/subject
+    public string CreatedBy { get; private set; } = default!; // actor username
+
+    /// <summary>Identity subject (user ID) of the user who owns this key.</summary>
+    public string OwnerId { get; private set; } = default!;
 
     private Key() { } // for ORM
 
-    public Key(KeyId id, string name, KeyPurpose purpose, IEnumerable<Mechanism> allowedMechanisms, DateTimeOffset createdAt, string createdBy)
+    public Key(KeyId id, string name, KeyPurpose purpose, IEnumerable<Mechanism> allowedMechanisms, DateTimeOffset createdAt, string createdBy, string ownerId)
     {
         Guard.True(id.Value != Guid.Empty, "KeyId must not be empty.");
         Guard.NotEmpty(name, nameof(name));
         Guard.NotNull(allowedMechanisms, nameof(allowedMechanisms));
         Guard.NotEmpty(createdBy, nameof(createdBy));
+        Guard.NotEmpty(ownerId, nameof(ownerId));
 
         Id = id;
         Name = name;
@@ -40,12 +44,17 @@ public sealed class Key
         State = KeyState.Active;
         CreatedAt = createdAt;
         CreatedBy = createdBy;
+        OwnerId = ownerId;
 
         foreach (var mech in allowedMechanisms)
             _allowedMechanismNames.Add(mech.Name);
 
         Guard.True(_allowedMechanismNames.Count > 0, "At least one allowed mechanism must be configured.");
     }
+
+    /// <summary>Returns true if the given userId is the owner of this key.</summary>
+    public bool IsOwnedBy(string userId) =>
+        string.Equals(OwnerId, userId, StringComparison.Ordinal);
 
     public bool IsMechanismAllowed(Mechanism mechanism) =>
         _allowedMechanismNames.Contains(mechanism.Name);

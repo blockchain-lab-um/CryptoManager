@@ -35,6 +35,14 @@ namespace CryptoManager.Infrastructure.Persistence.EntityFramework
                 .ToListAsync();
         }
 
+        public async Task<IReadOnlyList<Key>> ListByOwnerAsync(string ownerId)
+        {
+            return await dbContext.Keys
+                .Include(k => k.Versions)
+                .Where(k => k.OwnerId == ownerId)
+                .ToListAsync();
+        }
+
         public async Task AddAsync(Key key)
         {
             await dbContext.Keys.AddAsync(key);

@@ -1,11 +1,13 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import { provideRouter } from '@angular/router';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 import { MessageService } from 'primeng/api';
 import { routes } from './app.routes';
+import { authInterceptor } from './auth/auth.interceptor';
 
 const Noir = definePreset(Aura, {
   semantic: {
@@ -60,6 +62,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     MessageService,
     provideRouter(routes),
+    provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {

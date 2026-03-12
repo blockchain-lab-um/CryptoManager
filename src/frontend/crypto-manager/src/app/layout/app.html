@@ -12,6 +12,7 @@
                 </div>
             </div>
 
+            @if (authService.isAuthenticated()) {
             <nav class="hidden items-center gap-2 md:flex">
                 <a routerLink="/dashboard" routerLinkActive="text-slate-900"
                     class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
@@ -25,10 +26,23 @@
                     class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
                     Sign
                 </a>
+                <a routerLink="/verify" routerLinkActive="text-slate-900"
+                    class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
+                    Verify
+                </a>
             </nav>
+            }
 
             <div class="flex items-center gap-2">
-                <p-button type="button" icon="pi pi-user" [text]="true"></p-button>
+                @if (authService.isAuthenticated()) {
+                <span class="hidden sm:block text-sm text-slate-600">
+                    {{ authService.currentUser()?.userName }}
+                </span>
+                <p-button type="button" icon="pi pi-sign-out" [text]="true" (onClick)="logout()"
+                    aria-label="Sign out"></p-button>
+                } @else {
+                <p-button type="button" icon="pi pi-user" [text]="true" aria-label="User"></p-button>
+                }
             </div>
         </div>
     </header>

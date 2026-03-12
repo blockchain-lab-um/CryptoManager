@@ -1,16 +1,17 @@
-﻿using CryptoManager.API.DTOs.Keys;
+using CryptoManager.API.DTOs.Keys;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Application.UseCases;
 using CryptoManager.Domain.Enums;
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CryptoManager.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public sealed class KeysController : ControllerBase
     {
         private readonly CreateKeyUseCase _createKey;
@@ -35,6 +36,7 @@ namespace CryptoManager.API.Controllers
 
         // GET /api/keys
         [HttpGet]
+        [Authorize(Policy = "CanOperate")]
         [ProducesResponseType(typeof(ListKeysResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<ListKeysResponseDto>> List(CancellationToken ct)
         {
@@ -57,17 +59,14 @@ namespace CryptoManager.API.Controllers
 
         // POST /api/keys
         [HttpPost]
+        [Authorize(Policy = "CanOperate")]
         [ProducesResponseType(typeof(CreateKeyResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<CreateKeyResponseDto>> Create(
             [FromBody] CreateKeyRequestDto request,
             CancellationToken ct)
         {
-            // Map API -> Domain/Application
             var purpose = ParsePurpose(request.Purpose);
-
-            var allowedMechanisms = request.AllowedMechanisms
-                .Select(Mechanism.Parse)
-                .ToArray();
+            var allowedMechanisms = request.AllowedMechanisms.Select(Mechanism.Parse).ToArray();
 
             var cmd = new CreateKeyCommand(
                 Name: request.Name.Trim(),
@@ -75,10 +74,7 @@ namespace CryptoManager.API.Controllers
                 AllowedMechanisms: allowedMechanisms
             );
 
-            var actor = GetActor();
-            var requestId = HttpContext.TraceIdentifier;
-
-            var result = await _createKey.ExecuteAsync(cmd, actor, requestId);
+            var result = await _createKey.ExecuteAsync(cmd);
 
             return Ok(new CreateKeyResponseDto
             {
@@ -92,19 +88,14 @@ namespace CryptoManager.API.Controllers
 
         // POST /api/keys/{keyId}/rotate
         [HttpPost("{keyId}/rotate")]
+        [Authorize(Policy = "AdminOnly")]
         [ProducesResponseType(typeof(RotateKeyResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<RotateKeyResponseDto>> Rotate(
             [FromRoute] string keyId,
             CancellationToken ct)
         {
             var kid = new KeyId(Guid.Parse(keyId));
-
-            var cmd = new RotateKeyCommand(kid);
-
-            var actor = GetActor();
-            var requestId = HttpContext.TraceIdentifier;
-
-            var result = await _rotateKey.ExecuteAsync(cmd, actor, requestId);
+            var result = await _rotateKey.ExecuteAsync(new RotateKeyCommand(kid));
 
             return Ok(new RotateKeyResponseDto
             {
@@ -116,6 +107,7 @@ namespace CryptoManager.API.Controllers
 
         // GET /api/keys/{keyId}/public?version=1
         [HttpGet("{keyId}/public")]
+        [Authorize(Policy = "CanOperate")]
         [ProducesResponseType(typeof(GetPublicKeyResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<GetPublicKeyResponseDto>> GetPublic(
             [FromRoute] string keyId,
@@ -123,13 +115,7 @@ namespace CryptoManager.API.Controllers
             CancellationToken ct)
         {
             var kid = new KeyId(Guid.Parse(keyId));
-
-            var cmd = new GetPublicKeyCommand(kid, version);
-
-            var actor = GetActor();
-            var requestId = HttpContext.TraceIdentifier;
-
-            var result = await _getPublicKey.ExecuteAsync(cmd, actor, requestId);
+            var result = await _getPublicKey.ExecuteAsync(new GetPublicKeyCommand(kid, version));
 
             return Ok(new GetPublicKeyResponseDto
             {
@@ -140,19 +126,14 @@ namespace CryptoManager.API.Controllers
         }
 
         [HttpDelete("{keyId}")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<OkResult> Delete([FromRoute] string keyId, CancellationToken ct)
         {
             var kid = new KeyId(Guid.Parse(keyId));
-
-            var cmd = new DeleteKeyCommand(kid);
-            var actor = GetActor();
-            var requestId = HttpContext.TraceIdentifier;
-
-            await _deleteKey.ExecuteAsync(cmd, actor, requestId);
-            
+            await _deleteKey.ExecuteAsync(new DeleteKeyCommand(kid));
             return Ok();
         }
-        
+
         private static KeyPurpose ParsePurpose(string? purpose)
         {
             if (string.IsNullOrWhiteSpace(purpose))
@@ -162,16 +143,6 @@ namespace CryptoManager.API.Controllers
                 return p;
 
             throw new DomainException($"Unknown key purpose '{purpose}'.");
-        }
-
-        private string GetActor()
-        {
-            // MVP: if you add auth later, use User.Identity / JWT claims.
-            // For now, keep it simple.
-            if (User?.Identity?.IsAuthenticated == true)
-                return User.Identity!.Name ?? "authenticated-user";
-
-            return "dev";
         }
     }
 }

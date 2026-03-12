@@ -1,0 +1,50 @@
+<div class="w-full max-w-sm">
+    <app-card padding="p-8">
+        <div class="mb-6 text-center">
+            <div
+                class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white font-semibold text-lg mb-3">
+                CM
+            </div>
+            <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Sign in</h1>
+            <p class="mt-1 text-sm text-slate-500">Sign in to your CryptoManager account</p>
+        </div>
+
+        @if (errorMessage(); as err) {
+        <p-message severity="error" [text]="err" class="mb-4 block" aria-live="assertive"></p-message>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
+            <div>
+                <label class="block text-xs text-slate-500 mb-1" for="login-username">Username</label>
+                <input id="login-username" type="text" pInputText formControlName="userName" class="w-full"
+                    autocomplete="username" aria-required="true"
+                    [attr.aria-describedby]="form.controls.userName.invalid && form.controls.userName.touched ? 'login-username-error' : null" />
+                @if (form.controls.userName.invalid && form.controls.userName.touched) {
+                <small id="login-username-error" class="text-red-600 text-xs mt-1 block">
+                    Username is required.
+                </small>
+                }
+            </div>
+
+            <div>
+                <label class="block text-xs text-slate-500 mb-1" for="login-password">Password</label>
+                <p-password inputId="login-password" formControlName="password" [feedback]="false" [toggleMask]="true"
+                    styleClass="w-full" inputStyleClass="w-full" autocomplete="current-password" aria-required="true"
+                    [attr.aria-describedby]="form.controls.password.invalid && form.controls.password.touched ? 'login-password-error' : null" />
+                @if (form.controls.password.invalid && form.controls.password.touched) {
+                <small id="login-password-error" class="text-red-600 text-xs mt-1 block">
+                    @if (form.controls.password.hasError('required')) { Password is required. }
+                    @else { Password must be at least 8 characters. }
+                </small>
+                }
+            </div>
+
+            <button pButton type="submit" label="Sign in" class="w-full p-button mt-2" [loading]="loading()"></button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-slate-500">
+            Don't have an account?
+            <a routerLink="/register" class="font-medium text-slate-900 hover:underline underline-offset-2">Register</a>
+        </p>
+    </app-card>
+</div>

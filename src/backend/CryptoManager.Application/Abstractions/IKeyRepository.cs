@@ -13,6 +13,7 @@ namespace CryptoManager.Application.Abstractions
         Task<Key?> GetByIdAsync(KeyId id);
         Task<Key?> GetByNameAsync(string name);
         Task<IReadOnlyList<Key>> ListAllAsync();
+        Task<IReadOnlyList<Key>> ListByOwnerAsync(string ownerId);
         Task AddAsync(Key key);
         Task UpdateAsync(Key key);
         Task DeleteAsync(Key key);

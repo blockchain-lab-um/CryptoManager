@@ -1,4 +1,4 @@
-﻿using CryptoManager.Application.Abstractions;
+using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Application.Exceptions;
 using CryptoManager.Domain.Entities;
@@ -14,26 +14,29 @@ namespace CryptoManager.Application.UseCases
         private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
+        private readonly ICurrentUser _currentUser;
 
         public SignDigestUseCase(
             IKeyRepository keyRepository,
             IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
-            IClock clock)
+            IClock clock,
+            ICurrentUser currentUser)
         {
             _keyRepository = keyRepository;
             _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
+            _currentUser = currentUser;
         }
 
-        public async Task<SignDigestResult> ExecuteAsync(
-            SignDigestCommand command,
-            string actor,
-            string? requestId)
+        public async Task<SignDigestResult> ExecuteAsync(SignDigestCommand command)
         {
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
+
+            if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
+                throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
 
             if (key.State != KeyState.Active)
                 throw new DomainException($"Key '{key.Name}' is not active.");
@@ -61,9 +64,7 @@ namespace CryptoManager.Application.UseCases
             }
             catch (Exception ex)
             {
-                await WriteAuditAsync(
-                    success: false,
-                    error: ex.Message);
+                await WriteAuditAsync(success: false, error: ex.Message);
                 throw;
             }
 
@@ -83,16 +84,15 @@ namespace CryptoManager.Application.UseCases
                 var evt = new AuditEvent(
                     AuditEventId.New(),
                     _clock.UtcNow,
-                    actor,
+                    _currentUser.Actor,
                     AuditAction.Sign,
                     key.Id,
                     keyVersion.Version,
                     command.Mechanism,
-                    requestId,
+                    null,
                     success,
                     error
                 );
-
                 await _auditSink.WriteAsync(evt);
                 return evt.Id;
             }
@@ -104,5 +104,4 @@ namespace CryptoManager.Application.UseCases
                 throw new DomainException("Invalid digest length for SHA-256.");
         }
     }
-
 }

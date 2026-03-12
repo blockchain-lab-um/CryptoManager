@@ -1,4 +1,4 @@
-﻿using CryptoManager.Application.Abstractions;
+using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Application.Exceptions;
 using CryptoManager.Domain.Entities;
@@ -14,23 +14,23 @@ namespace CryptoManager.Application.UseCases
         private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
+        private readonly ICurrentUser _currentUser;
 
         public RotateKeyUseCase(
             IKeyRepository keyRepository,
             IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
-            IClock clock)
+            IClock clock,
+            ICurrentUser currentUser)
         {
             _keyRepository = keyRepository;
             _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
+            _currentUser = currentUser;
         }
 
-        public async Task<RotateKeyResult> ExecuteAsync(
-            RotateKeyCommand command,
-            string actor,
-            string? requestId)
+        public async Task<RotateKeyResult> ExecuteAsync(RotateKeyCommand command)
         {
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
@@ -39,7 +39,6 @@ namespace CryptoManager.Application.UseCases
                 throw new DomainException($"Key '{key.Name}' is not active and cannot be rotated.");
 
             var currentKeyVersion = key.GetPrimaryVersion();
-
             var nextVersion = key.Versions.Count == 0 ? 1 : key.Versions.Max(v => v.Version) + 1;
 
             var primaryMechanismName = key.AllowedMechanisms.FirstOrDefault()
@@ -59,9 +58,7 @@ namespace CryptoManager.Application.UseCases
                 created.providerRef.ProviderInstanceId = newProvider.InstanceId;
 
                 if (oldProvider.IsAvailable())
-                {
                     await oldProvider.DestroyPrivateKeyAsync(currentKeyVersion.ProviderRef);
-                }
             }
             catch (Exception ex)
             {
@@ -77,14 +74,13 @@ namespace CryptoManager.Application.UseCases
                 providerRef: created.providerRef,
                 publicKey: created.publicKey,
                 createdAt: now,
-                createdBy: actor
+                createdBy: _currentUser.Actor
             );
 
             key.PromoteVersionToPrimary(newKv.Version);
             key.RetireVersion(currentKeyVersion.Version);
 
             await _keyRepository.UpdateAsync(key);
-
             await WriteAuditAsync(success: true);
 
             return new RotateKeyResult(
@@ -98,16 +94,15 @@ namespace CryptoManager.Application.UseCases
                 var evt = new AuditEvent(
                     AuditEventId.New(),
                     _clock.UtcNow,
-                    actor,
+                    _currentUser.Actor,
                     AuditAction.RotateKey,
                     key.Id,
                     success ? nextVersion : null,
                     mechanism: primaryMechanism,
-                    requestId: requestId,
+                    requestId: null,
                     success: success,
                     error: error
                 );
-
                 await _auditSink.WriteAsync(evt);
             }
         }

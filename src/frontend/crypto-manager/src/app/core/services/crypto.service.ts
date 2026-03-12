@@ -32,6 +32,19 @@ export class CryptoService {
     URL.revokeObjectURL(url);
   }
 
+  pemToArrayBuffer(pem: string): ArrayBuffer {
+    const b64 = pem
+      .replace(/-----BEGIN [^-]+-----/g, '')
+      .replace(/-----END [^-]+-----/g, '')
+      .replace(/\s/g, '');
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer as ArrayBuffer;
+  }
+
   downloadPem(pem: string, filename: string): void {
     const blob = new Blob([pem], { type: 'application/x-pem-file' });
     const url = URL.createObjectURL(blob);

@@ -41,6 +41,10 @@ internal sealed class KeyConfiguration : IEntityTypeConfiguration<Key>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(k => k.OwnerId)
+            .IsRequired()
+            .HasMaxLength(450); // matches ASP.NET Identity key length
+
         // AllowedMechanisms is backed by private field _allowedMechanismNames (HashSet<string>).
         // Serialise as a JSON array column.
         var jsonOptions = new JsonSerializerOptions();

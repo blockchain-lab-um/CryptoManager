@@ -1,4 +1,4 @@
-﻿using CryptoManager.Application.Abstractions;
+using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Domain.Entities;
 using CryptoManager.Domain.Enums;
@@ -13,23 +13,23 @@ namespace CryptoManager.Application.UseCases
         private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
+        private readonly ICurrentUser _currentUser;
 
         public CreateKeyUseCase(
             IKeyRepository keyRepository,
             IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
-            IClock clock)
+            IClock clock,
+            ICurrentUser currentUser)
         {
             _keyRepository = keyRepository;
             _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
+            _currentUser = currentUser;
         }
 
-        public async Task<CreateKeyResult> ExecuteAsync(
-            CreateKeyCommand command,
-            string actor,
-            string? requestId)
+        public async Task<CreateKeyResult> ExecuteAsync(CreateKeyCommand command)
         {
             if (string.IsNullOrWhiteSpace(command.Name))
                 throw new DomainException("Key name must not be empty.");
@@ -41,10 +41,9 @@ namespace CryptoManager.Application.UseCases
             if (existing is not null)
                 throw new DomainException($"Key name '{command.Name}' already exists.");
 
-            
             var primaryMechanism = command.AllowedMechanisms.First();
-
             var provider = _hsmRegistry.ResolveFirstAvailable();
+            var keyId = KeyId.New();
 
             (ProviderRef providerRef, PublicKeyMaterial publicKey) created;
             try
@@ -56,12 +55,11 @@ namespace CryptoManager.Application.UseCases
             }
             catch (Exception ex)
             {
-                await WriteAuditAsync(success: false, actor: actor, error: ex.Message);
+                await WriteAuditAsync(success: false, error: ex.Message);
                 throw;
             }
 
             var now = _clock.UtcNow;
-            var keyId = KeyId.New();
 
             var key = new Key(
                 id: keyId,
@@ -69,7 +67,8 @@ namespace CryptoManager.Application.UseCases
                 purpose: command.KeyPurpose,
                 allowedMechanisms: command.AllowedMechanisms,
                 createdAt: now,
-                createdBy: actor
+                createdBy: _currentUser.Actor,
+                ownerId: _currentUser.UserId
             );
 
             var v1 = key.AddVersion(
@@ -78,12 +77,11 @@ namespace CryptoManager.Application.UseCases
                 providerRef: created.providerRef,
                 publicKey: created.publicKey,
                 createdAt: now,
-                createdBy: actor
+                createdBy: _currentUser.Actor
             );
 
             await _keyRepository.AddAsync(key);
-
-            await WriteAuditAsync(success: true, actor: actor);
+            await WriteAuditAsync(success: true);
 
             return new CreateKeyResult(
                 KeyId: key.Id,
@@ -92,24 +90,23 @@ namespace CryptoManager.Application.UseCases
                 PrimaryVersion: v1.Version,
                 PublicKey: v1.PublicKey
             );
-        }
 
-        private async Task WriteAuditAsync(bool success, string actor, Mechanism? primaryMechanism = null, string? requestId = null, KeyId? keyId = null, string? error = null)
-        {
-            var evt = new AuditEvent(
-                AuditEventId.New(),
-                _clock.UtcNow,
-                actor,
-                AuditAction.CreateKey,
-                keyId: keyId?.Value == Guid.Empty ? null : keyId,
-                keyVersion: success ? 1 : null,
-                mechanism: primaryMechanism,
-                requestId: requestId,
-                success: success,
-                error: error
-            );
-
-            await _auditSink.WriteAsync(evt);
+            async Task WriteAuditAsync(bool success, string? error = null)
+            {
+                var evt = new AuditEvent(
+                    AuditEventId.New(),
+                    _clock.UtcNow,
+                    _currentUser.Actor,
+                    AuditAction.CreateKey,
+                    keyId: success ? keyId : null,
+                    keyVersion: success ? 1 : null,
+                    mechanism: primaryMechanism,
+                    requestId: null,
+                    success: success,
+                    error: error
+                );
+                await _auditSink.WriteAsync(evt);
+            }
         }
     }
 }

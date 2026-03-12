@@ -15,11 +15,11 @@ namespace CryptoManager.Infrastructure.Crypto;
 /// </summary>
 public sealed class PadesSigner : IPadesSigner
 {
-    private readonly IHsmProvider _hsm;
+    private readonly IHsmProviderRegistry _hsmRegistry;
 
-    public PadesSigner(IHsmProvider hsm)
+    public PadesSigner(IHsmProviderRegistry hsmRegistry)
     {
-        _hsm = hsm;
+        _hsmRegistry = hsmRegistry;
     }
 
     public async Task<(string OutputFileName, byte[] Bytes)> SignPdfAsync(
@@ -31,7 +31,8 @@ public sealed class PadesSigner : IPadesSigner
     {
         // The certificate from SoftHsmProvider includes the private key (CertificateRequest.CreateSelfSigned).
         // PdfSharpDefaultSigner uses it via the .NET SignedCms class.
-        var cert = await _hsm.GetSigningCertificateAsync(providerRef);
+        var provider = _hsmRegistry.Resolve(providerRef.ProviderInstanceId);
+        var cert = await provider.GetSigningCertificateAsync(providerRef);
 
         using var inputStream = new MemoryStream(pdfBytes);
         var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);

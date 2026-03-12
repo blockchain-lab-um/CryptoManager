@@ -1,9 +1,14 @@
 import { Injectable } from '@angular/core';
+import { sha256 } from '@noble/hashes/sha2.js';
 
 @Injectable({ providedIn: 'root' })
 export class CryptoService {
   async computeDigest(data: ArrayBuffer): Promise<ArrayBuffer> {
-    return crypto.subtle.digest('SHA-256', data);
+    if (crypto?.subtle) {
+      return crypto.subtle.digest('SHA-256', data);
+    }
+    // Fallback for non-secure contexts (HTTP) — pure-JS implementation
+    return sha256(new Uint8Array(data)).buffer as ArrayBuffer;
   }
 
   bufferToBase64(buffer: ArrayBuffer): string {

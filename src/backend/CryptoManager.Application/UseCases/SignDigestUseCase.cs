@@ -11,18 +11,18 @@ namespace CryptoManager.Application.UseCases
     public sealed class SignDigestUseCase
     {
         private readonly IKeyRepository _keyRepository;
-        private readonly IHsmProvider _hsmProvider;
+        private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
 
         public SignDigestUseCase(
             IKeyRepository keyRepository,
-            IHsmProvider hsmProvider,
+            IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
             IClock clock)
         {
             _keyRepository = keyRepository;
-            _hsmProvider = hsmProvider;
+            _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
         }
@@ -49,10 +49,12 @@ namespace CryptoManager.Application.UseCases
 
             ValidateDigestLength(command.Digest, command.Mechanism);
 
+            var provider = _hsmRegistry.Resolve(keyVersion.ProviderRef.ProviderInstanceId);
+
             byte[] signature;
             try
             {
-                signature = await _hsmProvider.SignDigestAsync(
+                signature = await provider.SignDigestAsync(
                     keyVersion.ProviderRef,
                     command.Mechanism,
                     command.Digest);

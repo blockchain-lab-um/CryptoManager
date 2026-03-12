@@ -10,18 +10,18 @@ namespace CryptoManager.Application.UseCases
     public sealed class CreateKeyUseCase
     {
         private readonly IKeyRepository _keyRepository;
-        private readonly IHsmProvider _hsmProvider;
+        private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
 
         public CreateKeyUseCase(
             IKeyRepository keyRepository,
-            IHsmProvider hsmProvider,
+            IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
             IClock clock)
         {
             _keyRepository = keyRepository;
-            _hsmProvider = hsmProvider;
+            _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
         }
@@ -44,12 +44,15 @@ namespace CryptoManager.Application.UseCases
             
             var primaryMechanism = command.AllowedMechanisms.First();
 
+            var provider = _hsmRegistry.ResolveFirstAvailable();
+
             (ProviderRef providerRef, PublicKeyMaterial publicKey) created;
             try
             {
-                created = await _hsmProvider.CreateSigningKeyAsync(
+                created = await provider.CreateSigningKeyAsync(
                     KeyName: command.Name,
                     Mechanism: primaryMechanism);
+                created.providerRef.ProviderInstanceId = provider.InstanceId;
             }
             catch (Exception ex)
             {

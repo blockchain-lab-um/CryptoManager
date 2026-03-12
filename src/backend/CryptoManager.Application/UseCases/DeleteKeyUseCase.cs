@@ -13,18 +13,18 @@ public class DeleteKeyUseCase
     private readonly IKeyRepository _keyRepository;
     private readonly IAuditSink _auditSink;
     private readonly IClock _clock;
-    private readonly IHsmProvider _hsmProvider;
+    private readonly IHsmProviderRegistry _hsmRegistry;
 
     public DeleteKeyUseCase(
         IKeyRepository keyRepository,
         IAuditSink auditSink,
         IClock clock,
-        IHsmProvider hsmProvider)
+        IHsmProviderRegistry hsmRegistry)
     {
         _keyRepository = keyRepository;
         _auditSink = auditSink;
         _clock = clock;
-        _hsmProvider = hsmProvider;
+        _hsmRegistry = hsmRegistry;
     }
 
     public async Task ExecuteAsync(
@@ -37,7 +37,8 @@ public class DeleteKeyUseCase
 
         foreach (var version in key.Versions.Where(v => v.Status is KeyVersionStatus.Primary or KeyVersionStatus.Active))
         {
-            await _hsmProvider.DestroyPrivateKeyAsync(version.ProviderRef);
+            var provider = _hsmRegistry.Resolve(version.ProviderRef.ProviderInstanceId);
+            await provider.DestroyPrivateKeyAsync(version.ProviderRef);
         }
 
         key.Delete();

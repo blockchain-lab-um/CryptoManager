@@ -16,11 +16,11 @@ namespace CryptoManager.Infrastructure.Crypto;
 
 public sealed class BouncyCastlePkcs7AttachedSigner : IPkcs7AttachedSigner
 {
-    private readonly IHsmProvider _hsm;
+    private readonly IHsmProviderRegistry _hsmRegistry;
 
-    public BouncyCastlePkcs7AttachedSigner(IHsmProvider hsm)
+    public BouncyCastlePkcs7AttachedSigner(IHsmProviderRegistry hsmRegistry)
     {
-        _hsm = hsm;
+        _hsmRegistry = hsmRegistry;
     }
 
     public async Task<(string OutputFileName, byte[] Bytes)> SignAttachedAsync(
@@ -30,11 +30,12 @@ public sealed class BouncyCastlePkcs7AttachedSigner : IPkcs7AttachedSigner
         byte[] fileBytes,
         CancellationToken ct)
     {
-        var cert = await _hsm.GetSigningCertificateAsync(providerRef);
+        var provider = _hsmRegistry.Resolve(providerRef.ProviderInstanceId);
+        var cert = await provider.GetSigningCertificateAsync(providerRef);
         var bcCert = DotNetUtilities.FromX509Certificate(cert);
 
         var sigFactory = new HsmRsaPssSignatureFactory(
-            digest => _hsm.SignDigestAsync(providerRef, mechanism, digest));
+            digest => provider.SignDigestAsync(providerRef, mechanism, digest));
 
         var generator = new CmsSignedDataGenerator();
         generator.AddSignerInfoGenerator(

@@ -1,14 +1,17 @@
+using System.Runtime.InteropServices;
 using CryptoManager.API.Middleware;
 using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.UseCases;
 using CryptoManager.Infrastructure.Auditing;
 using CryptoManager.Infrastructure.Crypto;
+using CryptoManager.Infrastructure.HSM;
 using CryptoManager.Infrastructure.HSM.PKCS11;
 using CryptoManager.Infrastructure.HSM.SoftHSM;
 using CryptoManager.Infrastructure.Persistence.EntityFramework;
 using CryptoManager.Infrastructure.Persistence.InMemory;
 using CryptoManager.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
+using Net.Pkcs11Interop.HighLevelAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,9 +27,46 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.Configure<Pkcs11Options>(builder.Configuration.GetSection("Pkcs11"));
+var pkcs11InteropAssembly = typeof(Pkcs11InteropFactories).Assembly;
 
-builder.Services.AddSingleton<IHsmProvider, SoftHsmProvider>();
+NativeLibrary.SetDllImportResolver(
+    pkcs11InteropAssembly,
+    (libraryName, assembly, searchPath) =>
+    {
+        if (libraryName == "libdl")
+            return NativeLibrary.Load("libdl.so.2", assembly, searchPath);
+
+        return IntPtr.Zero;
+    });
+
+var hsmConfigs = builder.Configuration
+    .GetSection("HsmProviders")
+    .Get<HsmProviderConfig[]>()
+    ?? throw new InvalidOperationException("HsmProviders section is missing from configuration.");
+
+var defaults = hsmConfigs.Where(c => c.IsDefault).ToList();
+if (defaults.Count != 1)
+    throw new InvalidOperationException($"Exactly one HsmProvider must have IsDefault=true, found {defaults.Count}.");
+
+var providers = new Dictionary<string, IHsmProvider>();
+foreach (var cfg in hsmConfigs)
+{
+    if (string.IsNullOrWhiteSpace(cfg.Id))
+        throw new InvalidOperationException("Each HsmProvider entry must have a non-empty Id.");
+
+    IHsmProvider provider = cfg.Type switch
+    {
+        "SoftHsm" => new SoftHsmProvider(cfg.Id),
+        "Pkcs11" => new Pkcs11HsmProvider(cfg.Id,
+            cfg.Pkcs11 ?? throw new InvalidOperationException($"HsmProvider '{cfg.Id}' of type Pkcs11 requires a Pkcs11 config block.")),
+        _ => throw new InvalidOperationException($"Unknown HsmProvider type '{cfg.Type}' for provider '{cfg.Id}'.")
+    };
+
+    providers[cfg.Id] = provider;
+}
+
+builder.Services.AddSingleton<IHsmProviderRegistry>(
+    new HsmProviderRegistry(providers, defaultProviderId: defaults[0].Id));
 builder.Services.AddScoped<IKeyRepository, KeyRepository>();
 builder.Services.AddScoped<IAuditSink, AuditSink>();
 builder.Services.AddSingleton<IClock, SystemClock>();

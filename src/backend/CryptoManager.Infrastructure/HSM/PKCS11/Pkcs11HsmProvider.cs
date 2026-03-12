@@ -4,11 +4,9 @@ using CryptoManager.Domain.ValueObjects;
 using Net.Pkcs11Interop.Common;
 using System.Security.Cryptography.X509Certificates;
 using Net.Pkcs11Interop.HighLevelAPI;
-using Net.Pkcs11Interop.HighLevelAPI40.MechanismParams;
+using Net.Pkcs11Interop.HighLevelAPI80.MechanismParams;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Options;
-
 namespace CryptoManager.Infrastructure.HSM.PKCS11
 {
     public sealed class Pkcs11HsmProvider : IHsmProvider, IDisposable
@@ -16,14 +14,34 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
         private readonly Pkcs11Options _opt;
         private readonly IPkcs11Library _pkcs11;
 
-        public Pkcs11HsmProvider(IOptions<Pkcs11Options> opt)
+        public string InstanceId { get; }
+
+        public Pkcs11HsmProvider(string instanceId, Pkcs11Options opt)
         {
-            _opt = opt.Value;
+            InstanceId = instanceId;
+            _opt = opt;
             Pkcs11InteropFactories factories = new Pkcs11InteropFactories();
-            _pkcs11 = new Pkcs11InteropFactories().Pkcs11LibraryFactory.LoadPkcs11Library(factories, opt.Value.LibraryPath, AppType.SingleThreaded);
+            _pkcs11 = new Pkcs11InteropFactories().Pkcs11LibraryFactory.LoadPkcs11Library(factories, opt.LibraryPath, AppType.SingleThreaded);
         }
 
         public void Dispose() => _pkcs11.Dispose();
+
+        public bool IsAvailable()
+        {
+            try
+            {
+                var slots = _pkcs11.GetSlotList(SlotsType.WithTokenPresent);
+                return slots.Any(s =>
+                {
+                    var label = (s.GetTokenInfo().Label ?? string.Empty).Trim();
+                    return string.Equals(label, _opt.TokenLabel, StringComparison.Ordinal);
+                });
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         public Task<(ProviderRef ProviderRef, PublicKeyMaterial PublicKey)> CreateSigningKeyAsync(
             string KeyName,

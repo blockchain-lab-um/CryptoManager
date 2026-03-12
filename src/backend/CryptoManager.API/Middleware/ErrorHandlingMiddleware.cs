@@ -43,6 +43,7 @@ namespace CryptoManager.API.Middleware
                 // Application / Domain
                 NotFoundException nf => (HttpStatusCode.NotFound, nf.Message),
                 DomainException de => (HttpStatusCode.BadRequest, de.Message),
+                HsmUnavailableException hu => (HttpStatusCode.ServiceUnavailable, hu.Message),
 
                 // Explicit cancellation (client disconnected / timeout)
                 //OperationCanceledException =>

@@ -8,6 +8,7 @@ namespace CryptoManager.Domain.ValueObjects;
 public sealed record ProviderRef
 {
     public string ProviderType { get; } // e.g., "PKCS11", "Soft"
+    public string ProviderInstanceId { get; set; } // Which named instance holds this key
     public string Reference { get; }    // opaque, provider-specific
 
     public ProviderRef(string providerType, string reference)

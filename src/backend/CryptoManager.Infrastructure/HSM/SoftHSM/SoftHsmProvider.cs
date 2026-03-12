@@ -12,6 +12,15 @@ public sealed class SoftHsmProvider : IHsmProvider
 {
     private readonly ConcurrentDictionary<string, StoredKey> _keys = new(StringComparer.Ordinal);
 
+    public string InstanceId { get; }
+
+    public SoftHsmProvider(string instanceId)
+    {
+        InstanceId = instanceId;
+    }
+
+    public bool IsAvailable() => true;
+
     public Task<(ProviderRef ProviderRef, PublicKeyMaterial PublicKey)> CreateSigningKeyAsync(
         string keyName,
         Mechanism mechanism)

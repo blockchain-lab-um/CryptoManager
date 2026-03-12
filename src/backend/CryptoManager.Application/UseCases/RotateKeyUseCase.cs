@@ -11,18 +11,18 @@ namespace CryptoManager.Application.UseCases
     public sealed class RotateKeyUseCase
     {
         private readonly IKeyRepository _keyRepository;
-        private readonly IHsmProvider _hsmProvider;
+        private readonly IHsmProviderRegistry _hsmRegistry;
         private readonly IAuditSink _auditSink;
         private readonly IClock _clock;
 
         public RotateKeyUseCase(
             IKeyRepository keyRepository,
-            IHsmProvider hsmProvider,
+            IHsmProviderRegistry hsmRegistry,
             IAuditSink auditSink,
             IClock clock)
         {
             _keyRepository = keyRepository;
-            _hsmProvider = hsmProvider;
+            _hsmRegistry = hsmRegistry;
             _auditSink = auditSink;
             _clock = clock;
         }
@@ -47,14 +47,21 @@ namespace CryptoManager.Application.UseCases
 
             var primaryMechanism = Mechanism.Parse(primaryMechanismName);
 
+            var newProvider = _hsmRegistry.ResolveFirstAvailable();
+            var oldProvider = _hsmRegistry.Resolve(currentKeyVersion.ProviderRef.ProviderInstanceId);
+
             (ProviderRef providerRef, PublicKeyMaterial publicKey) created;
             try
             {
-                created = await _hsmProvider.CreateSigningKeyAsync(
+                created = await newProvider.CreateSigningKeyAsync(
                     KeyName: key.Name,
                     Mechanism: primaryMechanism);
+                created.providerRef.ProviderInstanceId = newProvider.InstanceId;
 
-                await _hsmProvider.DestroyPrivateKeyAsync(currentKeyVersion.ProviderRef);
+                if (oldProvider.IsAvailable())
+                {
+                    await oldProvider.DestroyPrivateKeyAsync(currentKeyVersion.ProviderRef);
+                }
             }
             catch (Exception ex)
             {

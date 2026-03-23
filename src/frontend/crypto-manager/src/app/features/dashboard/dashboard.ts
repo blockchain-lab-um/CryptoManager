@@ -7,9 +7,10 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 
-import { KeysService } from '../../keys/keys.service';
-import { KeySummaryDto } from '../../../core/api/models';
-import { Card } from '../../../core/components/card/card';
+import { KeysService } from '../keys/keys.service';
+import { KeySummaryDto } from '../../core/api/models';
+import { Card } from '../../shared/components/card/card';
+import { stateSeverity } from '../keys/keys.utils';
 
 type DashboardStats = {
   totalKeys: number;
@@ -20,11 +21,12 @@ type DashboardStats = {
 
 @Component({
   imports: [DatePipe, RouterLink, ButtonModule, TableModule, TagModule, SkeletonModule, Card],
-  templateUrl: './dashboard.component.html',
+  templateUrl: './dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent {
+export class DashboardPage {
   protected keysService = inject(KeysService);
+  protected readonly stateSeverity = stateSeverity;
 
   stats = computed<DashboardStats | undefined>(() => {
     const keys = this.keysService.keysResource.value();

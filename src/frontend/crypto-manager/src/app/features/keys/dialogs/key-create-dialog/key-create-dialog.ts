@@ -24,10 +24,10 @@ import { KeysService } from '../../keys.service';
     MessageModule,
     ProgressSpinner,
   ],
-  templateUrl: './key-create-dialog.component.html',
+  templateUrl: './key-create-dialog.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KeyCreateDialogComponent {
+export class KeyCreateDialog {
   private keysService = inject(KeysService);
   private appMessenger = inject(AppMessenger);
   private fb = inject(FormBuilder);

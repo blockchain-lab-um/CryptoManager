@@ -55,7 +55,7 @@
                 <td class="text-slate-700">{{ k.purpose || '—' }}</td>
 
                 <td>
-                    <p-tag [value]="k.state || 'unknown'" [severity]="keysService.stateSeverity(k.state)"></p-tag>
+                    <p-tag [value]="k.state || 'unknown'" [severity]="stateSeverity(k.state)"></p-tag>
                 </td>
 
                 <td class="text-right">{{ k.versionCount }}</td>

@@ -40,12 +40,4 @@ export class KeysService {
     return this.api.getPublicKey(keyId, version);
   }
 
-  stateSeverity(state?: string | null): 'success' | 'info' | 'warn' | 'danger' {
-    const s = (state ?? '').toLowerCase();
-    if (s.includes('active') || s.includes('ready')) return 'success';
-    if (s.includes('pending')) return 'info';
-    if (s.includes('disabled') || s.includes('inactive')) return 'warn';
-    if (s.includes('revoked') || s.includes('deleted') || s.includes('error')) return 'danger';
-    return 'info';
-  }
 }

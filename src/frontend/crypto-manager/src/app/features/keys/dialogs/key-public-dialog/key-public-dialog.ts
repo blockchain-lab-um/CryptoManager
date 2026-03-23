@@ -8,7 +8,7 @@ import { MessageModule } from 'primeng/message';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { TextareaModule } from 'primeng/textarea';
 
-import { CryptoService } from '../../../../core/services/crypto.service';
+import { DownloadService } from '../../../../core/services/download.service';
 import { KeySummaryDto } from '../../../../core/api/models';
 import { KeysService } from '../../keys.service';
 
@@ -23,12 +23,12 @@ import { KeysService } from '../../keys.service';
     MessageModule,
     ProgressSpinner,
   ],
-  templateUrl: './key-public-dialog.component.html',
+  templateUrl: './key-public-dialog.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KeyPublicDialogComponent {
+export class KeyPublicDialog {
   private keysService = inject(KeysService);
-  private cryptoService = inject(CryptoService);
+  private downloadService = inject(DownloadService);
   private fb = inject(FormBuilder);
 
   visible = input.required<boolean>();
@@ -83,6 +83,6 @@ export class KeyPublicDialogComponent {
 
   download() {
     const pem = this.publicPem();
-    if (pem) this.cryptoService.downloadPem(pem, 'pubkey.pem');
+    if (pem) this.downloadService.downloadPem(pem, 'pubkey.pem');
   }
 }

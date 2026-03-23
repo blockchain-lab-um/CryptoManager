@@ -7,7 +7,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TextareaModule } from 'primeng/textarea';
 
 import { AppMessenger } from '../../../../core/services/app-messenger';
-import { CryptoService } from '../../../../core/services/crypto.service';
+import { DownloadService } from '../../../../core/services/download.service';
 import { KeySummaryDto, RotateKeyResponseDto } from '../../../../core/api/models';
 import { KeysService } from '../../keys.service';
 
@@ -20,13 +20,13 @@ import { KeysService } from '../../keys.service';
     MessageModule,
     ProgressSpinnerModule,
   ],
-  templateUrl: './key-rotate-dialog.component.html',
+  templateUrl: './key-rotate-dialog.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KeyRotateDialogComponent {
+export class KeyRotateDialog {
   private keysService = inject(KeysService);
   private appMessenger = inject(AppMessenger);
-  private cryptoService = inject(CryptoService);
+  private downloadService = inject(DownloadService);
 
   visible = input.required<boolean>();
   key = input<KeySummaryDto | null>(null);
@@ -79,6 +79,6 @@ export class KeyRotateDialogComponent {
 
   downloadRotatedKey() {
     const pem = this.rotateResult()?.publicKeyPem;
-    if (pem) this.cryptoService.downloadPem(pem, 'pubkey.pem');
+    if (pem) this.downloadService.downloadPem(pem, 'pubkey.pem');
   }
 }

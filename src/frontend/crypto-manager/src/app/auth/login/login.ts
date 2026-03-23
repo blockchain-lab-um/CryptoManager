@@ -9,7 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../auth.service';
-import { Card } from '../../core/components/card/card';
+import { Card } from '../../shared/components/card/card';
 
 @Component({
   imports: [
@@ -21,10 +21,10 @@ import { Card } from '../../core/components/card/card';
     PasswordModule,
     Card,
   ],
-  templateUrl: './login.component.html',
+  templateUrl: './login.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent {
+export class Login {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);

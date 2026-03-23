@@ -66,8 +66,7 @@
                         </td>
 
                         <td>
-                            <p-tag [value]="k.state || 'unknown'"
-                                [severity]="keysService.stateSeverity(k.state)">
+                            <p-tag [value]="k.state || 'unknown'" [severity]="stateSeverity(k.state)">
                             </p-tag>
                         </td>
 
@@ -99,16 +98,13 @@
             <a pButton routerLink="/keys" label="Create key" icon="pi pi-plus" class="w-full p-button">
             </a>
 
-            <a pButton routerLink="/keys" label="Rotate key" icon="pi pi-refresh"
-                class="w-full p-button-secondary">
+            <a pButton routerLink="/keys" label="Rotate key" icon="pi pi-refresh" class="w-full p-button-secondary">
             </a>
 
-            <a pButton routerLink="/sign" label="Sign digest" icon="pi pi-lock"
-                class="w-full p-button-secondary">
+            <a pButton routerLink="/sign" label="Sign digest" icon="pi pi-lock" class="w-full p-button-secondary">
             </a>
 
-            <a pButton routerLink="/keys" label="Browse keys" icon="pi pi-list"
-                class="w-full p-button-text">
+            <a pButton routerLink="/keys" label="Browse keys" icon="pi pi-list" class="w-full p-button-text">
             </a>
         </div>
     </app-card>

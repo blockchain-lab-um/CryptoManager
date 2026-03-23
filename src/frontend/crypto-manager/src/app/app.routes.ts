@@ -5,43 +5,43 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
     path: '',
-    loadComponent: () => import('./auth/layout/auth-layout.component')
-      .then(m => m.AuthLayoutComponent),
+    loadComponent: () => import('./auth/layout/auth-layout')
+      .then(m => m.AuthLayout),
     children: [
       {
         path: 'login',
-        loadComponent: () => import('./auth/login/login.component')
-          .then(m => m.LoginComponent),
+        loadComponent: () => import('./auth/login/login')
+          .then(m => m.Login),
       },
       {
         path: 'register',
-        loadComponent: () => import('./auth/register/register.component')
-          .then(m => m.RegisterComponent),
+        loadComponent: () => import('./auth/register/register')
+          .then(m => m.Register),
       },
     ],
   },
   {
     path: 'dashboard',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/dashboard/dashboard.component/dashboard.component')
-      .then(m => m.DashboardComponent),
+    loadComponent: () => import('./features/dashboard/dashboard')
+      .then(m => m.DashboardPage),
   },
   {
     path: 'keys',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/keys/keys.component/keys.component')
-      .then(m => m.KeysComponent),
+    loadComponent: () => import('./features/keys/keys')
+      .then(m => m.KeysPage),
   },
   {
     path: 'sign',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/sign/sign.component/sign.component')
-      .then(m => m.SignComponent),
+    loadComponent: () => import('./features/sign/sign')
+      .then(m => m.SignPage),
   },
   {
     path: 'verify',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/verify/verify.component/verify.component')
-      .then(m => m.VerifyComponent),
+    loadComponent: () => import('./features/verify/verify')
+      .then(m => m.VerifyPage),
   },
 ];

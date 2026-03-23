@@ -27,16 +27,36 @@ Angular 20 frontend at `C:\PROJEKTI\CryptoManager\src\frontend\crypto-manager`.
 - Root layout component is `App` in `src/app/layout/app.ts` — renders a full-page shell with sticky header nav, `<router-outlet>`, and footer
 - API base URL from `environment.apiBaseUrl` (empty string in prod — same origin)
 
-**Feature structure:**
-- `src/app/core/api/` — `CryptoManagerApi` service + `models.ts` DTOs
-- `src/app/core/services/` — shared services (e.g., `CryptoService`)
-- `src/app/core/components/` — shared UI components (e.g., `Card`)
-- `src/app/pages/` — feature pages: `dashboard`, `keys`, `sign`, `verify`
-- Routes in `src/app/app.routes.ts`
+**Auth feature (completed as of 2026-03-23):**
+- Login `/login`, register `/register` — both bypass the main nav layout via AuthLayoutComponent
+- `AuthService` — in-memory signals for token + user, `isAuthenticated` computed, `login()`, `register()`, `logout()` (full page reload)
+- `authInterceptor` — functional HTTP interceptor, attaches Bearer token
+- `authGuard` — `CanActivateFn`, redirects to `/login` with returnUrl
+- `AuthLayoutComponent` — wrapper layout for auth pages only
+- Auth models in `src/app/auth/models/auth.models.ts`
 
-**Auth feature planned (2026-03-12):**
-- Login page `/login`, register page `/register`
-- Auth service with in-memory token storage, `isAuthenticated` signal
-- Functional HTTP interceptor attaches Bearer token
-- `CanActivateFn` guard protecting all existing routes
-- Login/register pages must bypass the main nav layout shell
+**Current folder structure (as of 2026-03-23):**
+- `src/app/auth/` — auth feature: service, guard, interceptor, models/, layout/, login/, register/
+- `src/app/core/api/` — `CryptoManagerApi` service + `models.ts` DTOs (API layer)
+- `src/app/core/services/` — `CryptoService` (crypto utils), `AppMessenger` (PrimeNG toast wrapper)
+- `src/app/core/components/card/` — shared `Card` UI component
+- `src/app/layout/` — root shell: `App` component (app.ts, app.html, app.css)
+- `src/app/features/dashboard/dashboard.component/` — dashboard page (extra .component folder nesting)
+- `src/app/features/keys/keys.component/` — keys list page (extra .component folder nesting)
+- `src/app/features/keys/dialogs/` — key-create, key-delete, key-public, key-rotate dialogs
+- `src/app/features/keys/keys.service.ts` — keys feature service (providedIn root — misplaced scope)
+- `src/app/features/sign/sign.component/` — sign page (extra .component folder nesting)
+- `src/app/features/verify/verify.component/` — verify page (extra .component folder nesting)
+- `src/app/app.routes.ts`, `src/app/app.config.ts`
+
+**Key structural issues identified (2026-03-23):**
+- `pages/` wrapper is a redundant layer; features should be at `features/` (keys, sign, verify, dashboard)
+- Extra `.component` subfolder inside each page feature folder (e.g. `keys/keys.component/keys.component.ts`) is a double-nesting anti-pattern
+- `auth/` is a feature, but it sits as a sibling to `core/` and `pages/` — inconsistent placement relative to other features
+- `KeysService` is `providedIn: 'root'` but is only used within the keys/dashboard/sign/verify scope — scoping concern
+- `CryptoService` mixes download utilities with cryptographic operations — two separate responsibilities
+- `core/components/card/` — card component belongs in `shared/` not `core/`
+- `AppMessenger` wraps PrimeNG `MessageService` — thin wrapper that adds a layer of indirection without much value
+- `layout/app.ts` — root shell component, correct placement but class is named `App` (should follow Angular naming: `AppComponent` or `AppShellComponent`)
+- `SignComponent` and `VerifyComponent` inject `CryptoManagerApi` directly, bypassing any service layer — direct API calls from page components
+- `new Date()` used in `app.ts` `currentYear` getter — violates the CLAUDE.md rule about not assuming globals

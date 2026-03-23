@@ -10,23 +10,17 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 
-import { CryptoManagerApi } from '../../../core/api/cryptomanager-api.service';
-import { CryptoService } from '../../../core/services/crypto.service';
-import { KeysService } from '../../keys/keys.service';
-import { KeySummaryDto } from '../../../core/api/models';
-import { Card } from '../../../core/components/card/card';
+import { CryptoService } from '../../core/services/crypto.service';
+import { DownloadService } from '../../core/services/download.service';
+import { KeysService } from '../keys/keys.service';
+import { Card } from '../../shared/components/card/card';
+import { toKeySelectOptions } from '../keys/keys.utils';
+import { Signer, SignResult } from './signer';
 
 type InputMode = 'text' | 'file';
 type ReturnFormat = 'signature' | 'file';
 
-export interface SignResult {
-  format: ReturnFormat;
-  signatureBase64?: string;
-  signedFile?: File;
-  auditEventId?: string;
-  keyVersion?: number;
-  encoding?: string;
-}
+export type { SignResult };
 
 @Component({
   imports: [
@@ -41,23 +35,18 @@ export interface SignResult {
     SelectButtonModule,
     Card,
   ],
-  templateUrl: './sign.component.html',
+  templateUrl: './sign.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SignComponent {
-
+export class SignPage {
   private fb = inject(FormBuilder);
-  private api = inject(CryptoManagerApi);
   private route = inject(ActivatedRoute);
+  private signer = inject(Signer);
   private cryptoService = inject(CryptoService);
+  private downloadService = inject(DownloadService);
   protected keysService = inject(KeysService);
 
-  keyOptions = computed(() =>
-    (this.keysService.keysResource.value() ?? []).map((k: KeySummaryDto) => ({
-      label: k.name || k.keyId || 'Unnamed key',
-      value: k.keyId,
-    }))
-  );
+  keyOptions = computed(() => toKeySelectOptions(this.keysService.keysResource.value() ?? []));
 
   mechanismOptions = [
     { label: 'CKM_RSA_PKCS', value: 'CKM_RSA_PKCS' },
@@ -119,13 +108,7 @@ export class SignComponent {
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i) & 0xff;
     }
-    this.cryptoService.downloadBuffer(bytes.buffer as ArrayBuffer, 'signature.bin');
-  }
-
-  async downloadSignedFile() {
-    const file = this.result()?.signedFile;
-    if (!file) return;
-    this.cryptoService.downloadBuffer(await file.arrayBuffer(), file.name);
+    this.downloadService.downloadBuffer(bytes.buffer as ArrayBuffer, 'signature.bin');
   }
 
   async downloadBinaryDigest() {
@@ -135,7 +118,13 @@ export class SignComponent {
       return;
     }
     const hashBuffer = await this.cryptoService.computeDigest(raw);
-    this.cryptoService.downloadBuffer(hashBuffer, 'digest.bin');
+    this.downloadService.downloadBuffer(hashBuffer, 'digest.bin');
+  }
+
+  async downloadSignedFile() {
+    const file = this.result()?.signedFile;
+    if (!file) return;
+    this.downloadService.downloadBuffer(await file.arrayBuffer(), file.name);
   }
 
   async onSign() {
@@ -151,42 +140,19 @@ export class SignComponent {
 
     this.signing.set(true);
 
+    const { keyId, mechanism } = this.form.getRawValue();
+
     try {
       const data = await this.getInputBytes();
-      const { keyId, mechanism } = this.form.getRawValue();
 
-      if (this.signatureReturnFormat() === 'file') {
-        const file = this.selectedFile();
-        if (!file) throw new Error('No file selected for signing');
-        this.api.signFile({ keyId: keyId!, mechanism: mechanism!, file: file }).subscribe({
-          next: (res) => {
-            this.result.set({
-              format: 'file',
-              keyVersion: res.keyVersion,
-              encoding: res.encoding ?? undefined,
-              auditEventId: res.auditEventId ?? undefined,
-              signedFile: res.signedFile
-            }); this.signing.set(false);
-          },
-          error: (e) => { this.error.set(e?.error?.message ?? 'Failed to sign'); this.signing.set(false); },
-        });
-      } else {
-        const hashBuffer = await this.cryptoService.computeDigest(data);
-        const digestBase64 = this.cryptoService.bufferToBase64(hashBuffer);
+      const source$ = this.signatureReturnFormat() === 'file'
+        ? this.signer.signFile(keyId!, mechanism!, this.selectedFile()!)
+        : this.signer.signDigest(keyId!, mechanism!, data);
 
-        this.api.signDigest({ keyId: keyId!, mechanism: mechanism!, digestBase64 }).subscribe({
-          next: (res) => {
-            this.result.set({
-              format: 'signature',
-              signatureBase64: res.signatureBase64 ?? undefined,
-              auditEventId: res.auditEventId ?? undefined,
-              keyVersion: res.keyVersion,
-              encoding: res.encoding ?? undefined,
-            }); this.signing.set(false);
-          },
-          error: (e) => { this.error.set(e?.error?.message ?? 'Failed to sign'); this.signing.set(false); },
-        });
-      }
+      source$.subscribe({
+        next: (res) => { this.result.set(res); this.signing.set(false); },
+        error: (e) => { this.error.set(e?.error?.message ?? 'Failed to sign'); this.signing.set(false); },
+      });
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : 'Failed to process input');
       this.signing.set(false);

@@ -9,7 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../auth.service';
-import { Card } from '../../core/components/card/card';
+import { Card } from '../../shared/components/card/card';
 
 const passwordMatchValidator: ValidatorFn = (group: AbstractControl) => {
   const password = group.get('password')?.value as string;
@@ -27,10 +27,10 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl) => {
     PasswordModule,
     Card,
   ],
-  templateUrl: './register.component.html',
+  templateUrl: './register.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RegisterComponent {
+export class Register {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);

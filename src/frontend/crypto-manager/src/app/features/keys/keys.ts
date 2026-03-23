@@ -7,13 +7,14 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 
-import { KeysService } from '../keys.service';
-import { KeySummaryDto } from '../../../core/api/models';
-import { Card } from '../../../core/components/card/card';
-import { KeyCreateDialogComponent } from '../dialogs/key-create-dialog/key-create-dialog.component';
-import { KeyPublicDialogComponent } from '../dialogs/key-public-dialog/key-public-dialog.component';
-import { KeyRotateDialogComponent } from '../dialogs/key-rotate-dialog/key-rotate-dialog.component';
-import { KeyDeleteDialog } from '../dialogs/key-delete-dialog/key-delete-dialog';
+import { KeysService } from './keys.service';
+import { stateSeverity } from './keys.utils';
+import { KeySummaryDto } from '../../core/api/models';
+import { Card } from '../../shared/components/card/card';
+import { KeyCreateDialog } from './dialogs/key-create-dialog/key-create-dialog';
+import { KeyPublicDialog } from './dialogs/key-public-dialog/key-public-dialog';
+import { KeyRotateDialog } from './dialogs/key-rotate-dialog/key-rotate-dialog';
+import { KeyDeleteDialog } from './dialogs/key-delete-dialog/key-delete-dialog';
 
 @Component({
   imports: [
@@ -24,16 +25,17 @@ import { KeyDeleteDialog } from '../dialogs/key-delete-dialog/key-delete-dialog'
     InputTextModule,
     TagModule,
     Card,
-    KeyCreateDialogComponent,
-    KeyPublicDialogComponent,
-    KeyRotateDialogComponent,
+    KeyCreateDialog,
+    KeyPublicDialog,
+    KeyRotateDialog,
     KeyDeleteDialog,
   ],
-  templateUrl: './keys.component.html',
+  templateUrl: './keys.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KeysComponent {
+export class KeysPage {
   protected keysService = inject(KeysService);
+  protected readonly stateSeverity = stateSeverity;
 
   showCreate = signal(false);
   showPublic = signal(false);

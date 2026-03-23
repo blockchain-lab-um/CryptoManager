@@ -12,7 +12,12 @@
 
 <app-card padding="p-4">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div class="text-sm font-medium text-slate-700">All keys</div>
+        <div class="flex items-center gap-3">
+            @if (isAdmin()) {
+            <p-selectButton [options]="scopeOptions" [ngModel]="keyScope()" optionLabel="label" optionValue="value"
+                aria-label="Key scope" (onChange)="onScopeChange($event.value)"></p-selectButton>
+            }
+        </div>
 
         <div class="flex items-center gap-2">
             <span class="p-input-icon-left">
@@ -26,23 +31,28 @@
         </div>
     </div>
 
-    <p-table #dt class="mt-4" [value]="keysService.keysResource.value() ?? []"
-        [loading]="keysService.keysResource.isLoading()" [paginator]="true" [rows]="10" sortField="createdAt"
-        [sortOrder]="-1">
+    <p-table #dt class="mt-4" [value]="filteredKeys()" [loading]="keysService.keysResource.isLoading()"
+        [paginator]="true" [rows]="10" sortField="createdAt" [sortOrder]="-1">
         <ng-template pTemplate="header">
             <tr>
+                @if (isAdmin()) {
+                <th pSortableColumn="owner">Owner</th>
+                }
                 <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
                 <th>Purpose</th>
                 <th pSortableColumn="state">State <p-sortIcon field="state"></p-sortIcon></th>
-                <th class="text-right">Versions</th>
-                <th class="text-right">Primary</th>
+                <th class="text-right">Version</th>
                 <th pSortableColumn="createdAt">Created <p-sortIcon field="createdAt"></p-sortIcon></th>
+
                 <th class="text-right">Actions</th>
             </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-k>
             <tr>
+                @if (isAdmin()) {
+                <td class="text-right font-semibold">{{ k.owner ?? '' }}</td>
+                }
                 <td>
                     <div class="font-medium">{{ k.name || '—' }}</div>
                     <div class="mt-1 text-xs text-slate-500 font-mono">
@@ -52,16 +62,17 @@
                     </div>
                 </td>
 
+
                 <td class="text-slate-700">{{ k.purpose || '—' }}</td>
 
                 <td>
                     <p-tag [value]="k.state || 'unknown'" [severity]="stateSeverity(k.state)"></p-tag>
                 </td>
 
-                <td class="text-right">{{ k.versionCount }}</td>
-                <td class="text-right">{{ k.primaryVersion ?? '—' }}</td>
+                <td class="text-right">{{ k.primaryVersion ?? '-' }}</td>
 
                 <td class="text-slate-600">{{ k.createdAt | date:'medium' }}</td>
+
 
                 <td class="text-right whitespace-nowrap">
                     <button pButton type="button" label="Public" class="p-button-text p-button-sm"
@@ -78,7 +89,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="py-10 text-center text-slate-500">No keys found.</td>
+                <td [attr.colspan]="isAdmin() ? 7 : 6" class="py-10 text-center text-slate-500">No keys found.</td>
             </tr>
         </ng-template>
     </p-table>

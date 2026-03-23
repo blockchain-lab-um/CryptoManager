@@ -12,5 +12,6 @@ public sealed record KeySummary(
     KeyState State,
     int VersionCount,
     int? PrimaryVersion,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    string? Owner
 );

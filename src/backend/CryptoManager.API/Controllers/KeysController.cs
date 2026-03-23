@@ -52,7 +52,8 @@ namespace CryptoManager.API.Controllers
                     State = k.State.ToString(),
                     VersionCount = k.VersionCount,
                     PrimaryVersion = k.PrimaryVersion,
-                    CreatedAt = k.CreatedAt
+                    CreatedAt = k.CreatedAt,
+                    Owner = k.Owner
                 }).ToList()
             });
         }
@@ -88,7 +89,7 @@ namespace CryptoManager.API.Controllers
 
         // POST /api/keys/{keyId}/rotate
         [HttpPost("{keyId}/rotate")]
-        [Authorize(Policy = "AdminOnly")]
+        [Authorize(Policy = "CanOperate")]
         [ProducesResponseType(typeof(RotateKeyResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<RotateKeyResponseDto>> Rotate(
             [FromRoute] string keyId,

@@ -64,6 +64,7 @@ export interface KeySummaryDto {
     versionCount: number;
     primaryVersion?: number | null;
     createdAt: string; // ISO date-time
+    owner?: string | null;
 }
 
 export interface ListKeysResponseDto {

@@ -35,6 +35,9 @@ namespace CryptoManager.Application.UseCases
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
 
+            if (!_currentUser.IsInRole("Admin") && key.OwnerId != _currentUser.UserId)
+                throw new ForbiddenException("You do not have permission to rotate this key.");
+
             if (key.State != KeyState.Active)
                 throw new DomainException($"Key '{key.Name}' is not active and cannot be rotated.");
 

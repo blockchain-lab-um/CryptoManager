@@ -71,6 +71,6 @@ internal sealed class KeyConfiguration : IEntityTypeConfiguration<Key>
             .HasField("_versions")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasIndex(k => k.Name).IsUnique();
+        builder.HasIndex(k => new { k.Name, k.OwnerId }).IsUnique();
     }
 }

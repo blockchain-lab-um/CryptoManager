@@ -19,6 +19,8 @@ export class App {
     return new Date().getFullYear();
   }
 
+  isAdmin = this.authService.isAdmin;
+
   logout() {
     this.authService.logout();
   }

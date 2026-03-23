@@ -98,6 +98,7 @@ builder.Services.AddAuthorization(options =>
 // ── HTTP context / current user ────────────────────────────────────────────
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IUserLookup, UserLookup>();
 builder.Services.AddScoped<TokenService>();
 
 // ── HSM providers (config-driven) ─────────────────────────────────────────
@@ -130,7 +131,7 @@ foreach (var cfg in hsmConfigs)
 
     IHsmProvider provider = cfg.Type switch
     {
-        "SoftHsm" => new SoftHsmProvider(cfg.Id),
+        "SoftHsm" => new SoftHsmProvider(cfg.Id, cfg.SoftHsm?.FilePath),
         "Pkcs11" => new Pkcs11HsmProvider(cfg.Id,
             cfg.Pkcs11 ?? throw new InvalidOperationException($"HsmProvider '{cfg.Id}' of type Pkcs11 requires a Pkcs11 config block.")),
         _ => throw new InvalidOperationException($"Unknown HsmProvider type '{cfg.Type}' for provider '{cfg.Id}'.")

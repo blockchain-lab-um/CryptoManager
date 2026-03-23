@@ -5,18 +5,26 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 
 namespace CryptoManager.Infrastructure.HSM.SoftHSM;
 
 public sealed class SoftHsmProvider : IHsmProvider
 {
     private readonly ConcurrentDictionary<string, StoredKey> _keys = new(StringComparer.Ordinal);
+    private readonly string? _filePath;
+    private readonly object _fileLock = new();
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     public string InstanceId { get; }
 
-    public SoftHsmProvider(string instanceId)
+    public SoftHsmProvider(string instanceId, string? filePath = null)
     {
         InstanceId = instanceId;
+        _filePath = filePath;
+        if (_filePath is not null)
+            LoadFromDisk();
     }
 
     public bool IsAvailable() => true;
@@ -47,6 +55,7 @@ public sealed class SoftHsmProvider : IHsmProvider
                 DateTimeOffset.UtcNow.AddYears(10));
 
             _keys[providerRef.Reference] = StoredKey.ForRsa(rsa, publicPem, mechanism, cert);
+            PersistToDisk();
             return Task.FromResult((providerRef, new PublicKeyMaterial(publicPem)));
         }
 
@@ -66,6 +75,7 @@ public sealed class SoftHsmProvider : IHsmProvider
                 DateTimeOffset.UtcNow.AddYears(10));
 
             _keys[providerRef.Reference] = StoredKey.ForEcdsa(ecdsa, publicPem, mechanism, cert);
+            PersistToDisk();
             return Task.FromResult((providerRef, new PublicKeyMaterial(publicPem)));
         }
 
@@ -121,6 +131,7 @@ public sealed class SoftHsmProvider : IHsmProvider
         stored.Rsa?.Dispose();
         stored.Ecdsa?.Dispose();
 
+        PersistToDisk();
         return Task.CompletedTask;
     }
 
@@ -130,6 +141,98 @@ public sealed class SoftHsmProvider : IHsmProvider
             throw new DomainException("Key not found for ProviderRef.");
 
         return Task.FromResult(new PublicKeyMaterial(stored.PublicKeyPem));
+    }
+
+    private void LoadFromDisk()
+    {
+        if (!File.Exists(_filePath)) return;
+
+        var json = File.ReadAllText(_filePath!);
+        var entries = JsonSerializer.Deserialize<List<KeyFileEntry>>(json) ?? [];
+
+        foreach (var entry in entries)
+        {
+            var mechanism = Mechanism.Parse(entry.MechanismName);
+
+            StoredKey stored;
+            if (mechanism.Name == Mechanism.RsaPssSha256.Name)
+            {
+                var rsa = RSA.Create();
+                rsa.ImportFromPem(entry.PrivateKeyPkcs8Pem);
+                var cert = string.IsNullOrEmpty(entry.CertificateDerBase64)
+                    ? BuildSelfSignedCert(rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+                    : X509CertificateLoader.LoadCertificate(Convert.FromBase64String(entry.CertificateDerBase64)).CopyWithPrivateKey(rsa);
+                stored = StoredKey.ForRsa(rsa, entry.PublicKeyPem, mechanism, cert);
+            }
+            else
+            {
+                var ecdsa = ECDsa.Create();
+                ecdsa.ImportFromPem(entry.PrivateKeyPkcs8Pem);
+                var cert = string.IsNullOrEmpty(entry.CertificateDerBase64)
+                    ? BuildSelfSignedCert(ecdsa, HashAlgorithmName.SHA256)
+                    : X509CertificateLoader.LoadCertificate(Convert.FromBase64String(entry.CertificateDerBase64)).CopyWithPrivateKey(ecdsa);
+                stored = StoredKey.ForEcdsa(ecdsa, entry.PublicKeyPem, mechanism, cert);
+            }
+
+            _keys[entry.Reference] = stored;
+        }
+
+        // Re-persist so any entries that had missing cert data are written in the current format.
+        PersistToDisk();
+    }
+
+    private void PersistToDisk()
+    {
+        if (_filePath is null) return;
+
+        var entries = _keys.Select(kvp =>
+        {
+            var stored = kvp.Value;
+            var certDerBytes = stored.Certificate.Export(X509ContentType.Cert);
+            var privateKeyPem = stored.Rsa is not null
+                ? stored.Rsa.ExportPkcs8PrivateKeyPem()
+                : stored.Ecdsa!.ExportPkcs8PrivateKeyPem();
+
+            return new KeyFileEntry(
+                Reference: kvp.Key,
+                MechanismName: stored.Mechanism.Name,
+                PublicKeyPem: stored.PublicKeyPem,
+                PrivateKeyPkcs8Pem: privateKeyPem,
+                CertificateDerBase64: Convert.ToBase64String(certDerBytes));
+        }).ToList();
+
+        var json = JsonSerializer.Serialize(entries, JsonOptions);
+
+        var dir = Path.GetDirectoryName(_filePath);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        var tempPath = _filePath + ".tmp";
+        lock (_fileLock)
+        {
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, _filePath!, overwrite: true);
+        }
+    }
+
+    private static X509Certificate2 BuildSelfSignedCert(RSA rsa, HashAlgorithmName hash, RSASignaturePadding padding)
+    {
+        var req = new CertificateRequest(
+            new X500DistinguishedName($"CN=SoftHSM-{Guid.NewGuid():N}"),
+            rsa, hash, padding);
+        req.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
+        return req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
+    }
+
+    private static X509Certificate2 BuildSelfSignedCert(ECDsa ecdsa, HashAlgorithmName hash)
+    {
+        var req = new CertificateRequest(
+            new X500DistinguishedName($"CN=SoftHSM-{Guid.NewGuid():N}"),
+            ecdsa, hash);
+        req.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
+        return req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
     }
 
     private static void ValidateDigestLength(byte[] digest, Mechanism mechanism)
@@ -148,6 +251,13 @@ public sealed class SoftHsmProvider : IHsmProvider
         sb.AppendLine($"-----END {label}-----");
         return sb.ToString();
     }
+
+    private sealed record KeyFileEntry(
+        string Reference,
+        string MechanismName,
+        string PublicKeyPem,
+        string PrivateKeyPkcs8Pem,
+        string CertificateDerBase64);
 
     private sealed class StoredKey
     {

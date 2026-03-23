@@ -30,6 +30,12 @@
                     class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
                     Verify
                 </a>
+                @if(isAdmin()) {
+                <a routerLink="/users" routerLinkActive="text-slate-900"
+                    class="rounded-xl px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-900/5">
+                    Users
+                </a>
+                }
             </nav>
             }
 

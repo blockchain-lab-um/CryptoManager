@@ -15,6 +15,7 @@ export class AuthService {
 
   readonly isAuthenticated = computed(() => this._token() !== null);
   readonly currentUser = computed(() => this._user());
+  readonly isAdmin = computed(() => this._user()?.roles.includes('Admin') ?? false);
 
   getToken(): string | null {
     return this._token();

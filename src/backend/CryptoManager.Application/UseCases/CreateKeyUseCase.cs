@@ -37,7 +37,7 @@ namespace CryptoManager.Application.UseCases
             if (command.AllowedMechanisms is null || command.AllowedMechanisms.Count == 0)
                 throw new DomainException("At least one allowed mechanism must be configured.");
 
-            var existing = await _keyRepository.GetByNameAsync(command.Name);
+            var existing = await _keyRepository.GetByNameAndOwnerAsync(command.Name, _currentUser.UserId);
             if (existing is not null)
                 throw new DomainException($"Key name '{command.Name}' already exists.");
 

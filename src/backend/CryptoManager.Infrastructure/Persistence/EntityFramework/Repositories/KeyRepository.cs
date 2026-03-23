@@ -21,13 +21,14 @@ namespace CryptoManager.Infrastructure.Persistence.EntityFramework
                 .FirstOrDefaultAsync(k => k.Id == id);
         }
 
-        public async Task<Key?> GetByNameAsync(string name)
+        public async Task<Key?> GetByNameAndOwnerAsync(string name, string ownerId)
         {
             return await dbContext.Keys
                 .Include(k => k.Versions)
+                .Where(k => k.OwnerId == ownerId)
                 .FirstOrDefaultAsync(k => k.Name == name);
         }
-
+        
         public async Task<IReadOnlyList<Key>> ListAllAsync()
         {
             return await dbContext.Keys

@@ -11,7 +11,7 @@ namespace CryptoManager.Application.Abstractions
     public interface IKeyRepository
     {
         Task<Key?> GetByIdAsync(KeyId id);
-        Task<Key?> GetByNameAsync(string name);
+        Task<Key?> GetByNameAndOwnerAsync(string name, string ownerId);
         Task<IReadOnlyList<Key>> ListAllAsync();
         Task<IReadOnlyList<Key>> ListByOwnerAsync(string ownerId);
         Task AddAsync(Key key);

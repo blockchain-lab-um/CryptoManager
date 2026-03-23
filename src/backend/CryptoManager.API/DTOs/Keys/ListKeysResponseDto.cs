@@ -14,4 +14,5 @@ public sealed record KeySummaryDto
     public int VersionCount { get; init; }
     public int? PrimaryVersion { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
+    public string? Owner { get; init; }
 }

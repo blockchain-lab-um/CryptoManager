@@ -128,11 +128,6 @@ export class VerifyComponent {
       return;
     }
 
-    if (!crypto?.subtle) {
-      this.error.set('Signature verification requires a secure context (HTTPS).');
-      return;
-    }
-
     this.verifying.set(true);
 
     try {
@@ -142,18 +137,22 @@ export class VerifyComponent {
 
       const pem = await this.resolvePem(keyId, pemText);
       const spkiBuffer = this.cryptoService.pemToArrayBuffer(pem);
-      const cryptoKey = await crypto.subtle.importKey(
-        'spki', spkiBuffer, spec.importAlg, false, ['verify']
-      );
-
       const dataBytes = await this.getInputBytes();
+      const sigBuffer = await this.selectedSignatureFile()!.arrayBuffer();
 
-      let sigBuffer = await this.selectedSignatureFile()!.arrayBuffer();
-      if (spec.isDer) {
-        sigBuffer = this.derToP1363(new Uint8Array(sigBuffer), spec.coordLen!).buffer as ArrayBuffer;
+      let valid: boolean;
+      if (crypto?.subtle) {
+        const cryptoKey = await crypto.subtle.importKey(
+          'spki', spkiBuffer, spec.importAlg, false, ['verify']
+        );
+        const sigForVerify = spec.isDer
+          ? (this.derToP1363(new Uint8Array(sigBuffer), spec.coordLen!).buffer as ArrayBuffer)
+          : sigBuffer;
+        valid = await crypto.subtle.verify(spec.verifyAlg, cryptoKey, sigForVerify, dataBytes);
+      } else {
+        valid = await this.cryptoService.verifySignature(mechanism!, dataBytes, sigBuffer, spkiBuffer);
       }
 
-      const valid = await crypto.subtle.verify(spec.verifyAlg, cryptoKey, sigBuffer, dataBytes);
       this.result.set({ valid, mechanism: mechanism! });
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : 'Verification failed');

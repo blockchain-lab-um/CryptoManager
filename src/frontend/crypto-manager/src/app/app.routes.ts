@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
+import { adminGuard } from './auth/admin.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -43,5 +44,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/verify/verify')
       .then(m => m.VerifyPage),
+  },
+  {
+    path: 'users',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./features/users/users')
+      .then(m => m.UsersPage),
   },
 ];

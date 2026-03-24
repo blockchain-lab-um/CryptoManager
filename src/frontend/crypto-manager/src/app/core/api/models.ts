@@ -70,3 +70,35 @@ export interface KeySummaryDto {
 export interface ListKeysResponseDto {
     keys?: KeySummaryDto[] | null;
 }
+
+export interface AuditLogEntryDto {
+    id: string;
+    timestamp: string; // ISO 8601
+    actor: string;
+    actorId?: string | null;
+    action: string;
+    keyName?: string | null;
+    keyId?: string | null;
+    keyVersion?: number | null;
+    mechanism?: string | null;
+    success: boolean;
+    error?: string | null;
+}
+
+export interface PagedAuditLogResultDto {
+    items: AuditLogEntryDto[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+}
+
+export interface AuditLogQueryParams {
+    from?: string;
+    to?: string;
+    action?: string;
+    keyId?: string;
+    actor?: string;
+    page: number;
+    pageSize: number;
+}

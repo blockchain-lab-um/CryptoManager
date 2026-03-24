@@ -46,6 +46,12 @@ export const routes: Routes = [
       .then(m => m.VerifyPage),
   },
   {
+    path: 'audit-log',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/audit-log/audit-log')
+      .then(m => m.AuditLogPage),
+  },
+  {
     path: 'users',
     canActivate: [authGuard, adminGuard],
     loadComponent: () => import('./features/users/users')

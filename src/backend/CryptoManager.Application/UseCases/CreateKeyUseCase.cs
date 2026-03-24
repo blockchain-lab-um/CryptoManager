@@ -97,6 +97,7 @@ namespace CryptoManager.Application.UseCases
                     AuditEventId.New(),
                     _clock.UtcNow,
                     _currentUser.Actor,
+                    _currentUser.UserId,
                     AuditAction.CreateKey,
                     keyId: success ? keyId : null,
                     keyVersion: success ? 1 : null,

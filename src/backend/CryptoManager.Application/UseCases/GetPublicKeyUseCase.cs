@@ -32,40 +32,52 @@ namespace CryptoManager.Application.UseCases
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
 
-            if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
-                throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
-
-            KeyVersion keyVersion;
-            if (command.KeyVersion is null)
+            // Declared outside the validation block so WriteAuditAsync can reference it
+            // even when an exception is thrown before the version is resolved (null = unknown).
+            KeyVersion? keyVersion = null;
+            try
             {
-                keyVersion = key.GetPrimaryVersion();
+                if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
+                    throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
+
+                if (command.KeyVersion is null)
+                {
+                    keyVersion = key.GetPrimaryVersion();
+                }
+                else
+                {
+                    keyVersion = key.Versions.FirstOrDefault(v => v.Version == command.KeyVersion)
+                        ?? throw new DomainException(
+                            $"Key version {command.KeyVersion} not found for key '{key.Name}'.");
+                }
+
+                if (keyVersion.Status is KeyVersionStatus.Disabled or KeyVersionStatus.Destroyed)
+                    throw new DomainException($"Key version {keyVersion.Version} is not usable.");
             }
-            else
+            catch (ForbiddenException ex) { await WriteAuditAsync(success: false, error: ex.Message); throw; }
+            catch (DomainException ex)    { await WriteAuditAsync(success: false, error: ex.Message); throw; }
+
+            await WriteAuditAsync(success: true);
+
+            return new GetPublicKeyResult(key.Id, keyVersion!.Version, keyVersion.PublicKey);
+
+            async Task WriteAuditAsync(bool success, string? error = null)
             {
-                keyVersion = key.Versions.FirstOrDefault(v => v.Version == command.KeyVersion)
-                    ?? throw new DomainException(
-                        $"Key version {command.KeyVersion} not found for key '{key.Name}'.");
+                var evt = new AuditEvent(
+                    AuditEventId.New(),
+                    _clock.UtcNow,
+                    _currentUser.Actor,
+                    _currentUser.UserId,
+                    AuditAction.GetPublicKey,
+                    key.Id,
+                    keyVersion?.Version,
+                    mechanism: null,
+                    requestId: null,
+                    success: success,
+                    error: error
+                );
+                await _auditSink.WriteAsync(evt);
             }
-
-            if (keyVersion.Status is KeyVersionStatus.Disabled or KeyVersionStatus.Destroyed)
-                throw new DomainException($"Key version {keyVersion.Version} is not usable.");
-
-            var auditEvent = new AuditEvent(
-                AuditEventId.New(),
-                _clock.UtcNow,
-                _currentUser.Actor,
-                AuditAction.GetPublicKey,
-                key.Id,
-                keyVersion.Version,
-                mechanism: null,
-                null,
-                success: true,
-                error: null
-            );
-
-            await _auditSink.WriteAsync(auditEvent);
-
-            return new GetPublicKeyResult(key.Id, keyVersion.Version, keyVersion.PublicKey);
         }
     }
 }

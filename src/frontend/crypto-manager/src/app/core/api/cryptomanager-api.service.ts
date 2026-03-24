@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import {
+  AuditLogQueryParams,
   CreateKeyRequestDto,
   CreateKeyResponseDto,
   GetPublicKeyResponseDto,
   ListKeysResponseDto,
+  PagedAuditLogResultDto,
   RotateKeyResponseDto,
   SignDigestRequestDto,
   SignDigestResponseDto,
@@ -64,5 +66,17 @@ export class CryptoManagerApi {
 
   listKeys() {
     return this.http.get<ListKeysResponseDto>(`${this.base}/api/Keys`);
+  }
+
+  getAuditLog(params: AuditLogQueryParams) {
+    let p = new HttpParams()
+      .set('page', String(params.page))
+      .set('pageSize', String(params.pageSize));
+    if (params.from)   p = p.set('from', params.from);
+    if (params.to)     p = p.set('to', params.to);
+    if (params.action) p = p.set('action', params.action);
+    if (params.keyId)  p = p.set('keyId', params.keyId);
+    if (params.actor)  p = p.set('actor', params.actor);
+    return this.http.get<PagedAuditLogResultDto>(`${this.base}/api/Audit/logs`, { params: p });
   }
 }

@@ -9,9 +9,10 @@ export function stateSeverity(state?: string | null): 'success' | 'info' | 'warn
   return 'info';
 }
 
-export function toKeySelectOptions(keys: KeySummaryDto[]): { label: string; value: string }[] {
+export function toKeySelectOptions(keys: KeySummaryDto[]): { label: string; value: string; searchText: string }[] {
   return keys.map(k => ({
     label: k.name || k.keyId || 'Unnamed key',
     value: k.keyId ?? '',
+    searchText: `${k.name || ''} ${k.keyId || ''}`.trim(),
   }));
 }

@@ -24,6 +24,9 @@ internal sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEv
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(a => a.ActorId)
+            .HasMaxLength(450); // matches ASP.NET Identity PK length
+
         builder.Property(a => a.Action)
             .HasConversion<string>()
             .HasMaxLength(100)
@@ -52,5 +55,8 @@ internal sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEv
 
         builder.HasIndex(a => a.Timestamp);
         builder.HasIndex(a => a.KeyId);
+        builder.HasIndex(a => a.ActorId);
+        builder.HasIndex(a => new { a.ActorId, a.Timestamp }); // hot path: per-user + date-range queries
+        builder.HasIndex(a => a.Actor);                        // admin by-username filter
     }
 }

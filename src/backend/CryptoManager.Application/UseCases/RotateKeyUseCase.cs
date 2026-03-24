@@ -98,6 +98,7 @@ namespace CryptoManager.Application.UseCases
                     AuditEventId.New(),
                     _clock.UtcNow,
                     _currentUser.Actor,
+                    _currentUser.UserId,
                     AuditAction.RotateKey,
                     key.Id,
                     success ? nextVersion : null,

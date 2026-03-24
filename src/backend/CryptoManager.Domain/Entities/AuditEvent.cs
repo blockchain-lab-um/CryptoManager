@@ -10,6 +10,7 @@ public sealed class AuditEvent
     public DateTimeOffset Timestamp { get; private set; }
 
     public string Actor { get; private set; } = default!; // subject/user/service principal
+    public string? ActorId { get; private set; }          // stable identity key (NameIdentifier claim)
     public AuditAction Action { get; private set; }
 
     public KeyId? KeyId { get; private set; }
@@ -26,6 +27,7 @@ public sealed class AuditEvent
         AuditEventId id,
         DateTimeOffset timestamp,
         string actor,
+        string? actorId,
         AuditAction action,
         KeyId? keyId,
         int? keyVersion,
@@ -40,6 +42,7 @@ public sealed class AuditEvent
         Id = id;
         Timestamp = timestamp;
         Actor = actor;
+        ActorId = actorId;
         Action = action;
         KeyId = keyId;
         KeyVersion = keyVersion;

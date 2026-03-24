@@ -35,24 +35,32 @@ namespace CryptoManager.Application.UseCases
             var key = await _keyRepository.GetByIdAsync(command.KeyId)
                 ?? throw new NotFoundException($"Key '{command.KeyId}' not found.");
 
-            if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
-                throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
+            // Declared outside the validation block so WriteAuditAsync can reference it
+            // even when an exception is thrown before the version is resolved (null = unknown).
+            KeyVersion? keyVersion = null;
+            try
+            {
+                if (!key.IsOwnedBy(_currentUser.UserId) && !_currentUser.IsInRole("Admin"))
+                    throw new ForbiddenException($"You do not have access to key '{key.Name}'.");
 
-            if (key.State != KeyState.Active)
-                throw new DomainException($"Key '{key.Name}' is not active.");
+                if (key.State != KeyState.Active)
+                    throw new DomainException($"Key '{key.Name}' is not active.");
 
-            KeyVersion keyVersion = key.GetPrimaryVersion();
+                keyVersion = key.GetPrimaryVersion();
 
-            if (keyVersion.Status is KeyVersionStatus.Disabled or KeyVersionStatus.Destroyed)
-                throw new DomainException($"Key version {keyVersion.Version} is not usable.");
+                if (keyVersion.Status is KeyVersionStatus.Disabled or KeyVersionStatus.Destroyed)
+                    throw new DomainException($"Key version {keyVersion.Version} is not usable.");
 
-            if (!key.IsMechanismAllowed(command.Mechanism))
-                throw new DomainException(
-                    $"Mechanism '{command.Mechanism.Name}' is not allowed for key '{key.Name}'.");
+                if (!key.IsMechanismAllowed(command.Mechanism))
+                    throw new DomainException(
+                        $"Mechanism '{command.Mechanism.Name}' is not allowed for key '{key.Name}'.");
 
-            ValidateDigestLength(command.Digest, command.Mechanism);
+                ValidateDigestLength(command.Digest, command.Mechanism);
+            }
+            catch (ForbiddenException ex) { await WriteAuditAsync(success: false, error: ex.Message); throw; }
+            catch (DomainException ex)    { await WriteAuditAsync(success: false, error: ex.Message); throw; }
 
-            var provider = _hsmRegistry.Resolve(keyVersion.ProviderRef.ProviderInstanceId);
+            var provider = _hsmRegistry.Resolve(keyVersion!.ProviderRef.ProviderInstanceId);
 
             byte[] signature;
             try
@@ -85,9 +93,10 @@ namespace CryptoManager.Application.UseCases
                     AuditEventId.New(),
                     _clock.UtcNow,
                     _currentUser.Actor,
+                    _currentUser.UserId,
                     AuditAction.Sign,
                     key.Id,
-                    keyVersion.Version,
+                    keyVersion?.Version,
                     command.Mechanism,
                     null,
                     success,

@@ -48,6 +48,7 @@ public class DeleteKeyUseCase
             id: AuditEventId.New(),
             timestamp: _clock.UtcNow,
             actor: _currentUser.Actor,
+            actorId: _currentUser.UserId,
             action: AuditAction.DeleteKey,
             keyId: key.Id,
             keyVersion: null,

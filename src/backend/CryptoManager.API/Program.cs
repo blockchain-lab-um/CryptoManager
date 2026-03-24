@@ -1,4 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.InteropServices;
+using System.Security.Claims;
 using CryptoManager.API.Middleware;
 using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.UseCases;
@@ -80,7 +82,9 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+            NameClaimType = JwtRegisteredClaimNames.Name,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -144,6 +148,7 @@ builder.Services.AddSingleton<IHsmProviderRegistry>(
     new HsmProviderRegistry(providers, defaultProviderId: defaults[0].Id));
 builder.Services.AddScoped<IKeyRepository, KeyRepository>();
 builder.Services.AddScoped<IAuditSink, AuditSink>();
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 
 builder.Services.AddScoped<CreateKeyUseCase>();
@@ -153,6 +158,7 @@ builder.Services.AddScoped<GetPublicKeyUseCase>();
 builder.Services.AddScoped<ListKeysUseCase>();
 builder.Services.AddScoped<SignFileUseCase>();
 builder.Services.AddScoped<DeleteKeyUseCase>();
+builder.Services.AddScoped<GetAuditLogsUseCase>();
 
 builder.Services.AddScoped<ISignedArtifactBuilder, SignedArtifactBuilder>();
 builder.Services.AddScoped<IPadesSigner, PadesSigner>();

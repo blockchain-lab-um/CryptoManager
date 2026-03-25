@@ -2,7 +2,6 @@
 using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
 using Net.Pkcs11Interop.Common;
-using System.Security.Cryptography.X509Certificates;
 using Net.Pkcs11Interop.HighLevelAPI;
 using Net.Pkcs11Interop.HighLevelAPI80.MechanismParams;
 using System.Security.Cryptography;
@@ -155,12 +154,6 @@ namespace CryptoManager.Infrastructure.HSM.PKCS11
                 session.Logout();
                 return new PublicKeyMaterial(pem);
             });
-        }
-
-        public Task<X509Certificate2> GetSigningCertificateAsync(ProviderRef providerRef)
-        {
-            throw new NotImplementedException(
-                "Certificate retrieval from PKCS#11 token is not implemented in this MVP. Use SoftHsmProvider for development.");
         }
 
         public Task<byte[]> SignDigestAsync(ProviderRef providerRef, Mechanism mechanism, byte[] digest)

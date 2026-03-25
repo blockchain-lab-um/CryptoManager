@@ -1,5 +1,7 @@
 using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
+using CryptoManager.Domain.Exceptions;
+using CryptoManager.Domain.ValueObjects;
 
 namespace CryptoManager.Infrastructure.Crypto;
 
@@ -20,9 +22,21 @@ public sealed class SignedArtifactBuilder : ISignedArtifactBuilder
         DocumentSigningMaterial material,
         CancellationToken ct)
     {
-        // TODO (Group 4): enforce ECDSA guard, pass material to updated signer implementations.
-        throw new NotImplementedException(
-            "SignedArtifactBuilder.SignAsync not yet updated for DocumentSigningMaterial. Implement in Group 4.");
+        if (material.Mechanism == Mechanism.EcdsaP256Sha256Der)
+            throw new DomainException("ECDSA document signing is not yet supported. Use RSA_PSS_SHA256.");
+
+        if (LooksLikePdf(fileBytes))
+        {
+            var (outputFileName, bytes) = await _padesSigner.SignPdfAsync(
+                originalFileName, fileBytes, material, ct);
+            return new SignedArtifact("PAdES", outputFileName, "application/pdf", bytes);
+        }
+        else
+        {
+            var (outputFileName, bytes) = await _pkcs7Signer.SignAttachedAsync(
+                originalFileName, fileBytes, material, ct);
+            return new SignedArtifact("PKCS7-Attached", outputFileName, "application/pkcs7-mime", bytes);
+        }
     }
 
     private static bool LooksLikePdf(byte[] bytes)

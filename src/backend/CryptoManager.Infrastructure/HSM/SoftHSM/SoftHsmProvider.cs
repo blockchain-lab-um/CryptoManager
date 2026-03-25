@@ -3,7 +3,6 @@ using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
@@ -43,18 +42,7 @@ public sealed class SoftHsmProvider : IHsmProvider
             var rsa = RSA.Create(2048);
             var publicPem = Pem("PUBLIC KEY", rsa.ExportSubjectPublicKeyInfo());
 
-            var certReq = new CertificateRequest(
-                new X500DistinguishedName($"CN=SoftHSM-{id}"),
-                rsa,
-                HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1);
-            certReq.CertificateExtensions.Add(new X509KeyUsageExtension(
-                X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
-            var cert = certReq.CreateSelfSigned(
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddYears(10));
-
-            _keys[providerRef.Reference] = StoredKey.ForRsa(rsa, publicPem, mechanism, cert);
+            _keys[providerRef.Reference] = StoredKey.ForRsa(rsa, publicPem, mechanism);
             PersistToDisk();
             return Task.FromResult((providerRef, new PublicKeyMaterial(publicPem)));
         }
@@ -64,17 +52,7 @@ public sealed class SoftHsmProvider : IHsmProvider
             var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             var publicPem = Pem("PUBLIC KEY", ecdsa.ExportSubjectPublicKeyInfo());
 
-            var certReq = new CertificateRequest(
-                new X500DistinguishedName($"CN=SoftHSM-{id}"),
-                ecdsa,
-                HashAlgorithmName.SHA256);
-            certReq.CertificateExtensions.Add(new X509KeyUsageExtension(
-                X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
-            var cert = certReq.CreateSelfSigned(
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddYears(10));
-
-            _keys[providerRef.Reference] = StoredKey.ForEcdsa(ecdsa, publicPem, mechanism, cert);
+            _keys[providerRef.Reference] = StoredKey.ForEcdsa(ecdsa, publicPem, mechanism);
             PersistToDisk();
             return Task.FromResult((providerRef, new PublicKeyMaterial(publicPem)));
         }
@@ -115,14 +93,6 @@ public sealed class SoftHsmProvider : IHsmProvider
         throw new DomainException($"SoftHsmProvider does not support mechanism '{mechanism.Name}'.");
     }
 
-    public Task<X509Certificate2> GetSigningCertificateAsync(ProviderRef providerRef)
-    {
-        if (!_keys.TryGetValue(providerRef.Reference, out var stored))
-            throw new DomainException("Key not found for ProviderRef.");
-
-        return Task.FromResult(stored.Certificate);
-    }
-
     public Task DestroyPrivateKeyAsync(ProviderRef providerRef)
     {
         if (!_keys.TryRemove(providerRef.Reference, out var stored))
@@ -159,26 +129,17 @@ public sealed class SoftHsmProvider : IHsmProvider
             {
                 var rsa = RSA.Create();
                 rsa.ImportFromPem(entry.PrivateKeyPkcs8Pem);
-                var cert = string.IsNullOrEmpty(entry.CertificateDerBase64)
-                    ? BuildSelfSignedCert(rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
-                    : X509CertificateLoader.LoadCertificate(Convert.FromBase64String(entry.CertificateDerBase64)).CopyWithPrivateKey(rsa);
-                stored = StoredKey.ForRsa(rsa, entry.PublicKeyPem, mechanism, cert);
+                stored = StoredKey.ForRsa(rsa, entry.PublicKeyPem, mechanism);
             }
             else
             {
                 var ecdsa = ECDsa.Create();
                 ecdsa.ImportFromPem(entry.PrivateKeyPkcs8Pem);
-                var cert = string.IsNullOrEmpty(entry.CertificateDerBase64)
-                    ? BuildSelfSignedCert(ecdsa, HashAlgorithmName.SHA256)
-                    : X509CertificateLoader.LoadCertificate(Convert.FromBase64String(entry.CertificateDerBase64)).CopyWithPrivateKey(ecdsa);
-                stored = StoredKey.ForEcdsa(ecdsa, entry.PublicKeyPem, mechanism, cert);
+                stored = StoredKey.ForEcdsa(ecdsa, entry.PublicKeyPem, mechanism);
             }
 
             _keys[entry.Reference] = stored;
         }
-
-        // Re-persist so any entries that had missing cert data are written in the current format.
-        PersistToDisk();
     }
 
     private void PersistToDisk()
@@ -188,7 +149,6 @@ public sealed class SoftHsmProvider : IHsmProvider
         var entries = _keys.Select(kvp =>
         {
             var stored = kvp.Value;
-            var certDerBytes = stored.Certificate.Export(X509ContentType.Cert);
             var privateKeyPem = stored.Rsa is not null
                 ? stored.Rsa.ExportPkcs8PrivateKeyPem()
                 : stored.Ecdsa!.ExportPkcs8PrivateKeyPem();
@@ -197,8 +157,7 @@ public sealed class SoftHsmProvider : IHsmProvider
                 Reference: kvp.Key,
                 MechanismName: stored.Mechanism.Name,
                 PublicKeyPem: stored.PublicKeyPem,
-                PrivateKeyPkcs8Pem: privateKeyPem,
-                CertificateDerBase64: Convert.ToBase64String(certDerBytes));
+                PrivateKeyPkcs8Pem: privateKeyPem);
         }).ToList();
 
         var json = JsonSerializer.Serialize(entries, JsonOptions);
@@ -213,26 +172,6 @@ public sealed class SoftHsmProvider : IHsmProvider
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, _filePath!, overwrite: true);
         }
-    }
-
-    private static X509Certificate2 BuildSelfSignedCert(RSA rsa, HashAlgorithmName hash, RSASignaturePadding padding)
-    {
-        var req = new CertificateRequest(
-            new X500DistinguishedName($"CN=SoftHSM-{Guid.NewGuid():N}"),
-            rsa, hash, padding);
-        req.CertificateExtensions.Add(new X509KeyUsageExtension(
-            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
-        return req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
-    }
-
-    private static X509Certificate2 BuildSelfSignedCert(ECDsa ecdsa, HashAlgorithmName hash)
-    {
-        var req = new CertificateRequest(
-            new X500DistinguishedName($"CN=SoftHSM-{Guid.NewGuid():N}"),
-            ecdsa, hash);
-        req.CertificateExtensions.Add(new X509KeyUsageExtension(
-            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation, true));
-        return req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
     }
 
     private static void ValidateDigestLength(byte[] digest, Mechanism mechanism)
@@ -256,8 +195,7 @@ public sealed class SoftHsmProvider : IHsmProvider
         string Reference,
         string MechanismName,
         string PublicKeyPem,
-        string PrivateKeyPkcs8Pem,
-        string CertificateDerBase64);
+        string PrivateKeyPkcs8Pem);
 
     private sealed class StoredKey
     {
@@ -265,21 +203,19 @@ public sealed class SoftHsmProvider : IHsmProvider
         public string PublicKeyPem { get; }
         public RSA? Rsa { get; }
         public ECDsa? Ecdsa { get; }
-        public X509Certificate2 Certificate { get; }
 
-        private StoredKey(Mechanism mechanism, string publicKeyPem, RSA? rsa, ECDsa? ecdsa, X509Certificate2 certificate)
+        private StoredKey(Mechanism mechanism, string publicKeyPem, RSA? rsa, ECDsa? ecdsa)
         {
             Mechanism = mechanism;
             PublicKeyPem = publicKeyPem;
             Rsa = rsa;
             Ecdsa = ecdsa;
-            Certificate = certificate;
         }
 
-        public static StoredKey ForRsa(RSA rsa, string publicKeyPem, Mechanism mechanism, X509Certificate2 certificate) =>
-            new(mechanism, publicKeyPem, rsa, null, certificate);
+        public static StoredKey ForRsa(RSA rsa, string publicKeyPem, Mechanism mechanism) =>
+            new(mechanism, publicKeyPem, rsa, null);
 
-        public static StoredKey ForEcdsa(ECDsa ecdsa, string publicKeyPem, Mechanism mechanism, X509Certificate2 certificate) =>
-            new(mechanism, publicKeyPem, null, ecdsa, certificate);
+        public static StoredKey ForEcdsa(ECDsa ecdsa, string publicKeyPem, Mechanism mechanism) =>
+            new(mechanism, publicKeyPem, null, ecdsa);
     }
 }

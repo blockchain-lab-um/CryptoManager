@@ -11,6 +11,7 @@ using CryptoManager.Infrastructure.HSM.PKCS11;
 using CryptoManager.Infrastructure.HSM.SoftHSM;
 using CryptoManager.Infrastructure.Identity;
 using CryptoManager.Infrastructure.Persistence.EntityFramework;
+using CryptoManager.Infrastructure.Persistence.EntityFramework.Repositories;
 using CryptoManager.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -147,9 +148,14 @@ foreach (var cfg in hsmConfigs)
 builder.Services.AddSingleton<IHsmProviderRegistry>(
     new HsmProviderRegistry(providers, defaultProviderId: defaults[0].Id));
 builder.Services.AddScoped<IKeyRepository, KeyRepository>();
+builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditSink, AuditSink>();
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<ICertificateAuthority, SoftSelfSignedCertificateAuthority>();
+builder.Services.AddScoped<ICsrBuilder, BouncyCastleCsrBuilder>();
+builder.Services.AddScoped<ICertificateValidator, BouncyCastleCertificateValidator>();
 
 builder.Services.AddScoped<CreateKeyUseCase>();
 builder.Services.AddScoped<RotateKeyUseCase>();

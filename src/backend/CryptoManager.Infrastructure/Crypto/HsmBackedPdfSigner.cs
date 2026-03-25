@@ -54,9 +54,7 @@ internal sealed class HsmBackedPdfSigner : IDigitalSigner
     /// </summary>
     public Task<byte[]> GetSignatureAsync(Stream rangeStream)
     {
-        using var ms = new MemoryStream();
-        rangeStream.CopyTo(ms);
-        var data = ms.ToArray();
+        var data = ReadAllBytes(rangeStream);
 
         byte[] digest;
         using (var sha = SHA256.Create())
@@ -65,6 +63,23 @@ internal sealed class HsmBackedPdfSigner : IDigitalSigner
         var rawSig = _signDigestAsync(digest).GetAwaiter().GetResult();
 
         return Task.FromResult(BuildCmsSignedData(data, rawSig));
+    }
+
+    private static byte[] ReadAllBytes(Stream stream)
+    {
+        using var ms = new MemoryStream();
+        var buffer = new byte[81920];
+
+        while (true)
+        {
+            var bytesRead = stream.Read(buffer, 0, buffer.Length);
+            if (bytesRead == 0)
+                break;
+
+            ms.Write(buffer, 0, bytesRead);
+        }
+
+        return ms.ToArray();
     }
 
     private byte[] BuildCmsSignedData(byte[] data, byte[] rawSignature)

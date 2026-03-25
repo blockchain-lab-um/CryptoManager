@@ -1,12 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import {
+  ActiveCertificateDto,
   AuditLogQueryParams,
+  CompleteEnrollmentResponseDto,
   CreateKeyRequestDto,
   CreateKeyResponseDto,
+  EnrollCertificateRequestDto,
+  EnrollCertificateResponseDto,
   GetPublicKeyResponseDto,
+  ImportCertificateRequestDto,
+  ImportCertificateResponseDto,
   ListKeysResponseDto,
   PagedAuditLogResultDto,
+  RevokeCertificateRequestDto,
   RotateKeyResponseDto,
   SignDigestRequestDto,
   SignDigestResponseDto,
@@ -66,6 +73,40 @@ export class CryptoManagerApi {
 
   listKeys() {
     return this.http.get<ListKeysResponseDto>(`${this.base}/api/Keys`);
+  }
+
+  getActiveCertificate(keyId: string) {
+    return this.http.get<ActiveCertificateDto>(
+      `${this.base}/api/keys/${encodeURIComponent(keyId)}/certificates/active`
+    );
+  }
+
+  enrollCertificate(keyId: string, body: EnrollCertificateRequestDto) {
+    return this.http.post<EnrollCertificateResponseDto>(
+      `${this.base}/api/keys/${encodeURIComponent(keyId)}/certificates/enroll`,
+      body
+    );
+  }
+
+  completeEnrollment(keyId: string, enrollmentId: string) {
+    return this.http.post<CompleteEnrollmentResponseDto>(
+      `${this.base}/api/keys/${encodeURIComponent(keyId)}/certificates/enrollments/${encodeURIComponent(enrollmentId)}/complete`,
+      {}
+    );
+  }
+
+  importCertificate(keyId: string, body: ImportCertificateRequestDto) {
+    return this.http.post<ImportCertificateResponseDto>(
+      `${this.base}/api/keys/${encodeURIComponent(keyId)}/certificates/import`,
+      body
+    );
+  }
+
+  revokeCertificate(keyId: string, certificateId: string, body: RevokeCertificateRequestDto) {
+    return this.http.post<void>(
+      `${this.base}/api/keys/${encodeURIComponent(keyId)}/certificates/${encodeURIComponent(certificateId)}/revoke`,
+      body
+    );
   }
 
   getAuditLog(params: AuditLogQueryParams) {

@@ -102,3 +102,61 @@ export interface AuditLogQueryParams {
     page: number;
     pageSize: number;
 }
+
+export type CertificateStatus =
+    | 'PendingEnrollment'
+    | 'Active'
+    | 'Expired'
+    | 'Revoked'
+    | 'Superseded'
+    | 'ImportFailed';
+
+export type CertificateSource = 'SelfSigned' | 'ExternalCA' | 'Imported';
+
+export interface ActiveCertificateDto {
+    id: string;
+    keyVersionId: string;
+    status: CertificateStatus;
+    source: CertificateSource;
+    serialNumber?: string | null;
+    thumbprint?: string | null;
+    subjectDN?: string | null;
+    issuerDN?: string | null;
+    notBefore?: string | null;
+    notAfter?: string | null;
+    enrollmentId?: string | null;
+    createdAt: string;
+    createdBy: string;
+}
+
+export interface EnrollCertificateRequestDto {
+    commonName: string;
+    organization?: string | null;
+    organizationalUnit?: string | null;
+    country?: string | null;
+}
+
+export interface EnrollCertificateResponseDto {
+    certificateId: string;
+    enrollmentId: string;
+}
+
+export interface CompleteEnrollmentResponseDto {
+    isComplete: boolean;
+    certificateId?: string | null;
+    thumbprint?: string | null;
+}
+
+export interface ImportCertificateRequestDto {
+    certificateDerBase64: string;
+    chainDerBase64?: string[] | null;
+}
+
+export interface ImportCertificateResponseDto {
+    certificateId: string;
+    thumbprint: string;
+}
+
+export interface RevokeCertificateRequestDto {
+    reason?: string | null;
+}

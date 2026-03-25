@@ -79,6 +79,8 @@
                         (click)="openPublic(k)"></button>
                     <button pButton type="button" label="Rotate" class="p-button-text p-button-sm"
                         (click)="openRotate(k)"></button>
+                    <a pButton type="button" label="Certs" class="p-button-text p-button-sm"
+                        [routerLink]="['/keys', k.keyId, 'certificates']"></a>
                     <a pButton type="button" label="Sign" class="p-button-text p-button-sm" [routerLink]="['/sign']"
                         [queryParams]="{ keyId: k.keyId }"></a>
                     <button pButton type="button" label="Delete" class="p-button-text p-button-sm"

@@ -1,0 +1,142 @@
+<div class="mb-8 flex items-start justify-between gap-4">
+    <div>
+        <div class="text-sm text-slate-500">
+            <a routerLink="/keys" class="hover:text-slate-700">Keys</a>
+            <span class="mx-2 text-slate-300">/</span>
+            <span>Certificates</span>
+        </div>
+        <h1 class="text-3xl font-semibold tracking-tight">{{ keyName() ?? 'Certificates' }}</h1>
+        <p class="mt-2 max-w-2xl text-slate-600">
+            Review the active certificate state for this key, start enrollment, import a certificate,
+            or revoke the current active certificate.
+        </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button pButton type="button" icon="pi pi-refresh" class="p-button-text" aria-label="Refresh"
+            (click)="refresh()"></button>
+        <button pButton type="button" label="Enroll certificate" icon="pi pi-plus" (click)="openIssue()"></button>
+        <button pButton type="button" label="Import certificate" class="p-button-outlined"
+            (click)="openImport()"></button>
+    </div>
+</div>
+
+@if (hasPendingEnrollment()) {
+<p-message severity="info" styleClass="mb-4 block">
+    Certificate enrollment is in progress. The page refreshes automatically while waiting for the CA response.
+</p-message>
+}
+
+@if (!hasActiveCert() && !hasPendingEnrollment()) {
+<p-message severity="warn" styleClass="mb-4 block">
+    This key has no active certificate. Signing will fail until a certificate is enrolled or imported.
+</p-message>
+}
+
+@if (certExpiringSoon()) {
+<p-message severity="warn" styleClass="mb-4 block">
+    The active certificate expires soon. Consider enrolling a new certificate.
+</p-message>
+}
+
+@if (certificatesService.activeCertificateResource.error(); as error) {
+<p-message severity="error" styleClass="mb-4 block">
+    Failed to load certificate state.
+    <button pButton type="button" label="Retry" class="p-button-text p-button-sm ml-2" (click)="refresh()"></button>
+</p-message>
+}
+
+<app-card padding="p-5">
+    @if (certificatesService.activeCertificateResource.isLoading()) {
+    <div class="animate-pulse space-y-3">
+        <div class="h-6 w-48 rounded bg-slate-200"></div>
+        <div class="h-4 w-full rounded bg-slate-100"></div>
+        <div class="h-4 w-5/6 rounded bg-slate-100"></div>
+        <div class="h-4 w-3/4 rounded bg-slate-100"></div>
+    </div>
+    } @else if (activeCert(); as cert) {
+    <div class="flex flex-col gap-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <div class="text-sm text-slate-500">Active certificate</div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <p-tag [value]="cert.status" [severity]="statusSeverity(cert.status)"
+                        [styleClass]="certStatusBadgeClass(cert.status)"></p-tag>
+                    <p-tag [value]="sourceLabel(cert.source)" severity="info"></p-tag>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button pButton type="button" label="Details" class="p-button-text" (click)="openDetail()"></button>
+                <button pButton type="button" label="Revoke" class="p-button-text" [disabled]="cert.status !== 'Active'"
+                    (click)="openRevoke()"></button>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Subject DN</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.subjectDN ?? 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Issuer DN</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.issuerDN ?? 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Thumbprint</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.thumbprint ?? 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Serial Number</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.serialNumber ?? 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Valid From</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notBefore ? (cert.notBefore | date:'medium') : 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Valid To</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notAfter ? (cert.notAfter | date:'medium') : 'Pending enrollment' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Key Version</div>
+                <div class="mt-1 font-mono text-sm text-slate-700">{{ cert.keyVersionId }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Created</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.createdAt | date:'medium' }}</div>
+            </div>
+        </div>
+    </div>
+    } @else {
+    <div class="py-10 text-center">
+        <div class="text-base font-medium text-slate-700">No active certificate</div>
+        <p class="mx-auto mt-2 max-w-xl text-sm text-slate-500">
+            This key does not currently have an active certificate. Use the actions above to enroll
+            a certificate or import one issued elsewhere.
+        </p>
+    </div>
+    }
+</app-card>
+
+@if (keyId(); as keyIdValue) {
+<app-cert-issue-dialog [visible]="showIssue()" [keyId]="keyIdValue" (visibleChange)="showIssue.set($event)">
+</app-cert-issue-dialog>
+
+<app-cert-import-dialog [visible]="showImport()" [keyId]="keyIdValue" (visibleChange)="showImport.set($event)">
+</app-cert-import-dialog>
+
+<app-cert-revoke-dialog [visible]="showRevoke()" [keyId]="keyIdValue" [cert]="selectedCert()"
+    (visibleChange)="showRevoke.set($event)">
+</app-cert-revoke-dialog>
+}
+
+<app-cert-detail-dialog [visible]="showDetail()" [cert]="selectedCert()" (visibleChange)="showDetail.set($event)">
+</app-cert-detail-dialog>

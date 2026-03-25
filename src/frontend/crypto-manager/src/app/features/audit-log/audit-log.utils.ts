@@ -12,6 +12,10 @@ export function actionLabel(action: string): string {
     case 'Sign': return 'Sign';
     case 'GetPublicKey': return 'Get Public Key';
     case 'SignFile': return 'Sign File';
+    case 'IssueCertificate': return 'Issue Certificate';
+    case 'ImportCertificate': return 'Import Certificate';
+    case 'RevokeCertificate': return 'Revoke Certificate';
+    case 'ExpireCertificate': return 'Expire Certificate';
     default: return action;
   }
 }
@@ -32,6 +36,14 @@ export function actionBadgeClass(action: string): string {
       return 'bg-slate-100 text-slate-800';
     case 'SignFile':
       return 'bg-cyan-100 text-cyan-800';
+    case 'IssueCertificate':
+      return 'bg-teal-100 text-teal-800';
+    case 'ImportCertificate':
+      return 'bg-indigo-100 text-indigo-800';
+    case 'RevokeCertificate':
+      return 'bg-orange-100 text-orange-800';
+    case 'ExpireCertificate':
+      return 'bg-red-100 text-red-800';
     default:
       return 'bg-zinc-100 text-zinc-800';
   }
@@ -47,4 +59,8 @@ export const AUDIT_ACTION_OPTIONS: { label: string; value: string | null }[] = [
   { label: 'Sign', value: 'Sign' },
   { label: 'Get Public Key', value: 'GetPublicKey' },
   { label: 'Sign File', value: 'SignFile' },
+  { label: 'Issue Certificate', value: 'IssueCertificate' },
+  { label: 'Import Certificate', value: 'ImportCertificate' },
+  { label: 'Revoke Certificate', value: 'RevokeCertificate' },
+  { label: 'Expire Certificate', value: 'ExpireCertificate' },
 ];

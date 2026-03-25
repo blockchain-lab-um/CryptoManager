@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, of, startWith, throwError } from 'rxjs';
 
 import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -10,6 +12,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 
+import { CryptoManagerApi } from '../../core/api/cryptomanager-api.service';
 import { CryptoService } from '../../core/services/crypto.service';
 import { DownloadService } from '../../core/services/download.service';
 import { KeysService } from '../keys/keys.service';
@@ -34,6 +37,7 @@ export type { SignResult };
     MessageModule,
     SelectButtonModule,
     Card,
+    RouterLink,
   ],
   templateUrl: './sign.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +45,7 @@ export type { SignResult };
 export class SignPage {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
+  private api = inject(CryptoManagerApi);
   private signer = inject(Signer);
   private cryptoService = inject(CryptoService);
   private downloadService = inject(DownloadService);
@@ -77,6 +82,33 @@ export class SignPage {
   result = signal<SignResult | null>(null);
   error = signal<string | null>(null);
   signing = signal(false);
+  readonly selectedKeyId = toSignal(
+    this.form.controls.keyId.valueChanges.pipe(startWith(this.form.controls.keyId.value)),
+    { initialValue: this.form.controls.keyId.value }
+  );
+  readonly fileSigningSelected = computed(() => this.inputMode() === 'file');
+  readonly activeCertResource = rxResource({
+    stream: () => {
+      const keyId = this.selectedKeyId();
+      if (!keyId) {
+        return of(null);
+      }
+
+      return this.api.getActiveCertificate(keyId).pipe(
+        catchError(err => err.status === 404 ? of(null) : throwError(() => err))
+      );
+    },
+  });
+  readonly activeCertMissing = computed(() => {
+    const keyId = this.selectedKeyId();
+
+    return (
+      this.fileSigningSelected() &&
+      !!keyId &&
+      !this.activeCertResource.isLoading() &&
+      this.activeCertResource.value() === null
+    );
+  });
 
   get signatureReturnFormatText(): string {
     return this.signatureReturnFormat() === 'signature' ? 'Signature' : 'Signed File';
@@ -130,6 +162,11 @@ export class SignPage {
   async onSign() {
     this.error.set(null);
     this.result.set(null);
+
+    if (this.fileSigningSelected() && this.activeCertMissing()) {
+      this.error.set('This key has no active certificate. Signing is not available.');
+      return;
+    }
 
     if (this.form.invalid || !this.hasInput()) {
       if (!this.hasInput()) {

@@ -34,6 +34,12 @@ export const routes: Routes = [
       .then(m => m.KeysPage),
   },
   {
+    path: 'keys/:keyId/certificates',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/certificates/certificates')
+      .then(m => m.CertificatesPage),
+  },
+  {
     path: 'sign',
     canActivate: [authGuard],
     loadComponent: () => import('./features/sign/sign')

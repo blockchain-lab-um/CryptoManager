@@ -162,7 +162,7 @@ builder.Services.AddScoped<RotateKeyUseCase>();
 builder.Services.AddScoped<SignDigestUseCase>();
 builder.Services.AddScoped<GetPublicKeyUseCase>();
 builder.Services.AddScoped<ListKeysUseCase>();
-builder.Services.AddScoped<SignFileUseCase>();
+builder.Services.AddScoped<SignDocumentUseCase>();
 builder.Services.AddScoped<DeleteKeyUseCase>();
 builder.Services.AddScoped<GetAuditLogsUseCase>();
 builder.Services.AddScoped<GenerateCsrUseCase>();

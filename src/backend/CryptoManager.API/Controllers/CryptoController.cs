@@ -14,12 +14,12 @@ namespace CryptoManager.API.Controllers;
 public sealed class CryptoController : ControllerBase
 {
     private readonly SignDigestUseCase _signDigest;
-    private readonly SignFileUseCase _signFile;
+    private readonly SignDocumentUseCase _signDocument;
 
-    public CryptoController(SignDigestUseCase signDigest, SignFileUseCase signFile)
+    public CryptoController(SignDigestUseCase signDigest, SignDocumentUseCase signDocument)
     {
-        _signDigest = signDigest;
-        _signFile = signFile;
+        _signDigest   = signDigest;
+        _signDocument = signDocument;
     }
 
     // POST /api/crypto/sign
@@ -76,7 +76,7 @@ public sealed class CryptoController : ControllerBase
             fileBytes = ms.ToArray();
         }
 
-        var result = await _signFile.ExecuteAsync(
+        var result = await _signDocument.ExecuteAsync(
             new SignFileCommand(
                 KeyId: keyId,
                 Mechanism: mechanism,

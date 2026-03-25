@@ -165,6 +165,12 @@ builder.Services.AddScoped<ListKeysUseCase>();
 builder.Services.AddScoped<SignFileUseCase>();
 builder.Services.AddScoped<DeleteKeyUseCase>();
 builder.Services.AddScoped<GetAuditLogsUseCase>();
+builder.Services.AddScoped<GenerateCsrUseCase>();
+builder.Services.AddScoped<SubmitCsrToCAUseCase>();
+builder.Services.AddScoped<CompleteCertificateEnrollmentUseCase>();
+builder.Services.AddScoped<ImportCertificateUseCase>();
+builder.Services.AddScoped<RevokeCertificateUseCase>();
+builder.Services.AddScoped<GetActiveCertificateUseCase>();
 
 builder.Services.AddScoped<ISignedArtifactBuilder, SignedArtifactBuilder>();
 builder.Services.AddScoped<IPadesSigner, PadesSigner>();

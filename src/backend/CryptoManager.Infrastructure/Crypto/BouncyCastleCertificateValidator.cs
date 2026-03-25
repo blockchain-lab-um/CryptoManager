@@ -3,6 +3,7 @@ using CryptoManager.Application.DTOs;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
+using System.Security.Cryptography;
 
 namespace CryptoManager.Infrastructure.Crypto;
 
@@ -90,6 +91,31 @@ public sealed class BouncyCastleCertificateValidator : ICertificateValidator
             throw new InvalidOperationException(
                 $"Certificate '{cert.SubjectDN}' is not valid at {at:O}: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>
+    /// Extracts human-readable metadata from a DER-encoded certificate so that
+    /// Application-layer use cases can populate domain entities without importing
+    /// BouncyCastle.
+    /// </summary>
+    public CertificateInfo ParseCertificateInfo(byte[] certDer)
+    {
+        var cert = ParseCert(certDer);
+
+        var serialHex = cert.SerialNumber.ToString(16).ToUpperInvariant();
+
+        byte[] thumbprintBytes;
+        using (var sha = SHA256.Create())
+            thumbprintBytes = sha.ComputeHash(certDer);
+        var thumbprint = Convert.ToHexString(thumbprintBytes); // uppercase hex, no dashes
+
+        return new CertificateInfo(
+            SerialNumber: serialHex,
+            Thumbprint:   thumbprint,
+            SubjectDN:    cert.SubjectDN.ToString(),
+            IssuerDN:     cert.IssuerDN.ToString(),
+            NotBefore:    new DateTimeOffset(cert.NotBefore, TimeSpan.Zero),
+            NotAfter:     new DateTimeOffset(cert.NotAfter,  TimeSpan.Zero));
     }
 
     private static X509Certificate ParseCert(byte[] der)

@@ -20,4 +20,10 @@ public interface ICertificateValidator
     /// in order from the leaf's issuer toward the root.
     /// </summary>
     ChainValidationResult ValidateChain(byte[] certDer, byte[][] chainDer, DateTimeOffset at);
+
+    /// <summary>
+    /// Extracts metadata fields from a DER-encoded certificate.
+    /// Keeps X.509 parsing in Infrastructure; use cases receive a plain DTO.
+    /// </summary>
+    CertificateInfo ParseCertificateInfo(byte[] certDer);
 }

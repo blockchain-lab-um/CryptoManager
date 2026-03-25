@@ -40,7 +40,7 @@ public sealed class Certificate
     private Certificate() { } // for EF
 
     // --- Factory: pending enrollment (CSR submitted, waiting for CA) ---
-    internal static Certificate CreatePending(
+    public static Certificate CreatePending(
         CertificateId id,
         KeyVersionId keyVersionId,
         CertificateSource source,
@@ -66,7 +66,7 @@ public sealed class Certificate
     }
 
     // --- Factory: directly active (import) ---
-    internal static Certificate CreateActive(
+    public static Certificate CreateActive(
         CertificateId id,
         KeyVersionId keyVersionId,
         CertificateSource source,
@@ -116,7 +116,7 @@ public sealed class Certificate
     /// Completes a pending enrollment by attaching the issued certificate material
     /// and transitioning to Active. Called by CompleteCertificateEnrollmentUseCase.
     /// </summary>
-    internal void Activate(
+    public void Activate(
         string serialNumber,
         string thumbprint,
         string subjectDN,
@@ -150,7 +150,7 @@ public sealed class Certificate
     /// Transitions to Superseded when a newer certificate becomes Active for the
     /// same KeyVersion. Called within the same transaction as the new cert activation.
     /// </summary>
-    internal void Supersede()
+    public void Supersede()
     {
         Guard.True(Status == CertificateStatus.Active,
             $"Only an Active certificate can be superseded (current status: {Status}).");
@@ -158,7 +158,7 @@ public sealed class Certificate
     }
 
     /// <summary>Transitions to Revoked.</summary>
-    internal void Revoke()
+    public void Revoke()
     {
         Guard.True(
             Status is CertificateStatus.Active or CertificateStatus.Superseded,
@@ -171,7 +171,7 @@ public sealed class Certificate
     /// is found to be in the past. Persisted immediately before the signing attempt
     /// is rejected.
     /// </summary>
-    internal void MarkExpired()
+    public void MarkExpired()
     {
         Guard.True(Status == CertificateStatus.Active,
             $"Only an Active certificate can be marked expired (current status: {Status}).");

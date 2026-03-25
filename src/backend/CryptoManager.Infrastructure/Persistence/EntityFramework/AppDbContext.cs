@@ -10,6 +10,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Key> Keys => Set<Key>();
+    public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

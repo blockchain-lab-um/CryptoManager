@@ -53,6 +53,11 @@ internal sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEv
         builder.Property(a => a.Error)
             .HasMaxLength(2000);
 
+        builder.Property(a => a.CertificateId);
+
+        builder.Property(a => a.CertificateThumbprint)
+            .HasMaxLength(128);
+
         builder.HasIndex(a => a.Timestamp);
         builder.HasIndex(a => a.KeyId);
         builder.HasIndex(a => a.ActorId);

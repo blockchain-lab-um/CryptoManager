@@ -63,12 +63,10 @@ namespace CryptoManager.Application.UseCases
             SignedArtifact signed;
             try
             {
-                signed = await _artifactBuilder.SignAsync(
-                    keyVersion!.ProviderRef,
-                    command.Mechanism,
-                    command.OriginalFileName,
-                    command.FileBytes,
-                    ct);
+                // TODO (Group 6): replace SignFileUseCase with SignDocumentUseCase which loads
+            // the active certificate and builds DocumentSigningMaterial before calling here.
+            throw new NotImplementedException(
+                "SignFileUseCase is superseded by SignDocumentUseCase. Implement in Group 6.");
             }
             catch (Exception ex)
             {

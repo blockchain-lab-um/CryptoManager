@@ -21,6 +21,15 @@ public sealed class AuditEvent
     public bool Success { get; private set; }
     public string? Error { get; private set; }
 
+    /// <summary>Populated for certificate-lifecycle and document-signing events.</summary>
+    public Guid? CertificateId { get; private set; }
+
+    /// <summary>
+    /// Denormalized SHA-256 thumbprint of the certificate, so audit records are
+    /// self-contained without joining to the Certificates table.
+    /// </summary>
+    public string? CertificateThumbprint { get; private set; }
+
     private AuditEvent() { }
 
     public AuditEvent(
@@ -34,21 +43,25 @@ public sealed class AuditEvent
         Mechanism? mechanism,
         string? requestId,
         bool success,
-        string? error)
+        string? error,
+        Guid? certificateId = null,
+        string? certificateThumbprint = null)
     {
         Guard.True(id.Value != Guid.Empty, "AuditEventId must not be empty.");
         Guard.NotEmpty(actor, nameof(actor));
 
-        Id = id;
-        Timestamp = timestamp;
-        Actor = actor;
-        ActorId = actorId;
-        Action = action;
-        KeyId = keyId;
-        KeyVersion = keyVersion;
-        Mechanism = mechanism?.Name;
-        RequestId = requestId;
-        Success = success;
-        Error = error;
+        Id                   = id;
+        Timestamp            = timestamp;
+        Actor                = actor;
+        ActorId              = actorId;
+        Action               = action;
+        KeyId                = keyId;
+        KeyVersion           = keyVersion;
+        Mechanism            = mechanism?.Name;
+        RequestId            = requestId;
+        Success              = success;
+        Error                = error;
+        CertificateId        = certificateId;
+        CertificateThumbprint = certificateThumbprint;
     }
 }

@@ -1,13 +1,12 @@
-using CryptoManager.Domain.ValueObjects;
+using CryptoManager.Application.DTOs;
 
-namespace CryptoManager.Infrastructure.Crypto;
+namespace CryptoManager.Application.Abstractions;
 
 public interface IPadesSigner
 {
     Task<(string OutputFileName, byte[] Bytes)> SignPdfAsync(
-        ProviderRef providerKeyRef,
-        Mechanism mechanism,
         string originalFileName,
         byte[] pdfBytes,
+        DocumentSigningMaterial material,
         CancellationToken ct);
 }

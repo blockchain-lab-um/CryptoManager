@@ -1,5 +1,5 @@
 using CryptoManager.Application.Abstractions;
-using CryptoManager.Domain.ValueObjects;
+using CryptoManager.Application.DTOs;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.Pkcs;
@@ -16,35 +16,15 @@ namespace CryptoManager.Infrastructure.Crypto;
 
 public sealed class BouncyCastlePkcs7AttachedSigner : IPkcs7AttachedSigner
 {
-    private readonly IHsmProviderRegistry _hsmRegistry;
-
-    public BouncyCastlePkcs7AttachedSigner(IHsmProviderRegistry hsmRegistry)
-    {
-        _hsmRegistry = hsmRegistry;
-    }
-
-    public async Task<(string OutputFileName, byte[] Bytes)> SignAttachedAsync(
-        ProviderRef providerRef,
-        Mechanism mechanism,
+    public Task<(string OutputFileName, byte[] Bytes)> SignAttachedAsync(
         string originalFileName,
         byte[] fileBytes,
+        DocumentSigningMaterial material,
         CancellationToken ct)
     {
-        var provider = _hsmRegistry.Resolve(providerRef.ProviderInstanceId);
-        var cert = await provider.GetSigningCertificateAsync(providerRef);
-        var bcCert = DotNetUtilities.FromX509Certificate(cert);
-
-        var sigFactory = new HsmRsaPssSignatureFactory(
-            digest => provider.SignDigestAsync(providerRef, mechanism, digest));
-
-        var generator = new CmsSignedDataGenerator();
-        generator.AddSignerInfoGenerator(
-            new SignerInfoGeneratorBuilder().Build(sigFactory, bcCert));
-        generator.AddCertificates(new SimpleX509Store(bcCert));
-
-        var cmsData = generator.Generate(new CmsProcessableByteArray(fileBytes), encapsulate: true);
-
-        return (originalFileName + ".p7m", cmsData.GetEncoded());
+        // TODO (Group 4): implement using material.CertBundle and material.SignDigestAsync.
+        // The HsmRsaPssSignatureFactory and supporting types below are retained for Group 4.
+        throw new NotImplementedException("BouncyCastlePkcs7AttachedSigner not yet updated. Implement in Group 4.");
     }
 
     /// <summary>

@@ -1,6 +1,5 @@
 using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
-using CryptoManager.Domain.ValueObjects;
 
 namespace CryptoManager.Infrastructure.Crypto;
 
@@ -16,32 +15,14 @@ public sealed class SignedArtifactBuilder : ISignedArtifactBuilder
     }
 
     public async Task<SignedArtifact> SignAsync(
-        ProviderRef providerKeyRef,
-        Mechanism mechanism,
         string originalFileName,
         byte[] fileBytes,
+        DocumentSigningMaterial material,
         CancellationToken ct)
     {
-        if (LooksLikePdf(fileBytes))
-        {
-            var signedPdf = await _padesSigner.SignPdfAsync(
-                providerKeyRef, mechanism, originalFileName, fileBytes, ct);
-
-            return new SignedArtifact(
-                Format: "pades",
-                OutputFileName: signedPdf.OutputFileName,
-                OutputContentType: "application/pdf",
-                Bytes: signedPdf.Bytes);
-        }
-
-        var p7m = await _pkcs7Signer.SignAttachedAsync(
-            providerKeyRef, mechanism, originalFileName, fileBytes, ct);
-
-        return new SignedArtifact(
-            Format: "p7m",
-            OutputFileName: p7m.OutputFileName,
-            OutputContentType: "application/pkcs7-mime",
-            Bytes: p7m.Bytes);
+        // TODO (Group 4): enforce ECDSA guard, pass material to updated signer implementations.
+        throw new NotImplementedException(
+            "SignedArtifactBuilder.SignAsync not yet updated for DocumentSigningMaterial. Implement in Group 4.");
     }
 
     private static bool LooksLikePdf(byte[] bytes)

@@ -60,6 +60,15 @@ export interface SignFileResponseDto {
     auditEventId?: string | null;
 }
 
+export interface VerifySignedFileResponseDto {
+    isValid: boolean;
+    format: string;
+    message: string;
+    signerName?: string | null;
+    certificateSubject?: string | null;
+    signingTime?: string | null;
+}
+
 
 export interface SignDigestResponseDto {
     keyId?: string | null;

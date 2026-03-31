@@ -171,6 +171,7 @@ builder.Services.AddScoped<SignDigestUseCase>();
 builder.Services.AddScoped<GetPublicKeyUseCase>();
 builder.Services.AddScoped<ListKeysUseCase>();
 builder.Services.AddScoped<SignDocumentUseCase>();
+builder.Services.AddScoped<VerifySignedFileUseCase>();
 builder.Services.AddScoped<DeleteKeyUseCase>();
 builder.Services.AddScoped<GetAuditLogsUseCase>();
 builder.Services.AddScoped<GenerateCsrUseCase>();
@@ -183,6 +184,7 @@ builder.Services.AddScoped<GetActiveCertificateUseCase>();
 builder.Services.AddScoped<ISignedArtifactBuilder, SignedArtifactBuilder>();
 builder.Services.AddScoped<IPadesSigner, PadesSigner>();
 builder.Services.AddScoped<IPkcs7AttachedSigner, BouncyCastlePkcs7AttachedSigner>();
+builder.Services.AddScoped<ISignedFileVerifier, SignedFileVerifier>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

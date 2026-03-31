@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ButtonModule } from 'primeng/button';
@@ -11,13 +11,14 @@ import { TextareaModule } from 'primeng/textarea';
 import { KeysService } from '../keys/keys.service';
 import { Card } from '../../shared/components/card/card';
 import { toKeySelectOptions } from '../keys/keys.utils';
-import { Verifier, VerifyResult, PublicKeySource } from './verifier';
+import { Verifier, VerifyResult, PublicKeySource, VerifyMode } from './verifier';
 
 type InputMode = 'text' | 'file';
 
 @Component({
   imports: [
     DecimalPipe,
+    DatePipe,
     FormsModule,
     ReactiveFormsModule,
     ButtonModule,
@@ -47,6 +48,11 @@ export class VerifyPage {
     { label: 'File', value: 'file' as InputMode },
   ];
 
+  verifyModeOptions = [
+    { label: 'Signature file', value: 'signature-file' as VerifyMode },
+    { label: 'Signed file', value: 'signed-file' as VerifyMode },
+  ];
+
   publicKeySourceOptions = [
     { label: 'Select key', value: 'select' as PublicKeySource },
     { label: 'Paste PEM', value: 'paste' as PublicKeySource },
@@ -61,9 +67,11 @@ export class VerifyPage {
   });
 
   inputMode = signal<InputMode>('text');
+  verifyMode = signal<VerifyMode>('signature-file');
   publicKeySource = signal<PublicKeySource>('select');
   selectedDataFile = signal<File | null>(null);
   selectedSignatureFile = signal<File | null>(null);
+  selectedSignedFile = signal<File | null>(null);
   selectedPemFile = signal<File | null>(null);
   verifying = signal(false);
   result = signal<VerifyResult | null>(null);
@@ -77,6 +85,11 @@ export class VerifyPage {
   onSignatureFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     this.selectedSignatureFile.set(input.files?.[0] ?? null);
+  }
+
+  onSignedFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.selectedSignedFile.set(input.files?.[0] ?? null);
   }
 
   onPemFileSelected(event: Event) {
@@ -96,6 +109,11 @@ export class VerifyPage {
     this.verifying.set(true);
 
     try {
+      if (this.verifyMode() === 'signed-file') {
+        this.result.set(await this.verifier.verifySignedFile(this.selectedSignedFile()!));
+        return;
+      }
+
       const { mechanism, keyId, pemText } = this.form.getRawValue();
       const pem = await this.verifier.resolvePem(
         this.publicKeySource(), keyId, pemText, this.selectedPemFile()
@@ -104,7 +122,7 @@ export class VerifyPage {
       const sigBuffer = await this.selectedSignatureFile()!.arrayBuffer();
 
       const valid = await this.verifier.verify(mechanism!, dataBytes, sigBuffer, pem);
-      this.result.set({ valid, mechanism: mechanism! });
+      this.result.set({ valid, mode: 'signature-file', mechanism: mechanism! });
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : 'Verification failed');
     } finally {
@@ -121,6 +139,8 @@ export class VerifyPage {
   }
 
   private hasRequiredInputs(): boolean {
+    if (this.verifyMode() === 'signed-file') return !!this.selectedSignedFile();
+
     const { mechanism, keyId, pemText, plainText } = this.form.getRawValue();
     if (!mechanism) return false;
     if (this.inputMode() === 'text' && !(plainText ?? '').trim()) return false;

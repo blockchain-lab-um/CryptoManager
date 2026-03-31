@@ -18,7 +18,8 @@ import {
   SignDigestRequestDto,
   SignDigestResponseDto,
   SignFileRequestDto,
-  SignFileResponseDto
+  SignFileResponseDto,
+  VerifySignedFileResponseDto
 } from './models';
 import { environment } from '../../../environments/environment';
 import { map } from 'rxjs';
@@ -75,6 +76,12 @@ export class CryptoManagerApi {
         signedFile: new File([response.body!], response.headers.get('X-File-Name') ?? 'signedfile', { type: response.body!.type }),
       }))
     );
+  }
+
+  verifySignedFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<VerifySignedFileResponseDto>(`${this.base}/api/Crypto/verify-file`, formData);
   }
 
   listKeys() {

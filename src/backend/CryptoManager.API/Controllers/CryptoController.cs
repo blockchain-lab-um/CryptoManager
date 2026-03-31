@@ -16,11 +16,16 @@ public sealed class CryptoController : ControllerBase
 {
     private readonly SignDigestUseCase _signDigest;
     private readonly SignDocumentUseCase _signDocument;
+    private readonly VerifySignedFileUseCase _verifySignedFile;
 
-    public CryptoController(SignDigestUseCase signDigest, SignDocumentUseCase signDocument)
+    public CryptoController(
+        SignDigestUseCase signDigest,
+        SignDocumentUseCase signDocument,
+        VerifySignedFileUseCase verifySignedFile)
     {
         _signDigest   = signDigest;
         _signDocument = signDocument;
+        _verifySignedFile = verifySignedFile;
     }
 
     // POST /api/crypto/sign
@@ -106,6 +111,39 @@ public sealed class CryptoController : ControllerBase
             fileContents: result.SignedFileBytes,
             contentType: result.OutputContentType,
             fileDownloadName: result.OutputFileName);
+    }
+
+    // POST /api/crypto/verify-file
+    [HttpPost("verify-file")]
+    [RequestSizeLimit(50_000_000)]
+    [ProducesResponseType(typeof(VerifySignedFileResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<VerifySignedFileResponseDto>> VerifySignedFile(
+        [FromForm] VerifySignedFileRequestDto dto,
+        CancellationToken ct)
+    {
+        byte[] fileBytes;
+        await using (var ms = new MemoryStream())
+        {
+            await dto.File.CopyToAsync(ms, ct);
+            fileBytes = ms.ToArray();
+        }
+
+        var result = await _verifySignedFile.ExecuteAsync(
+            new VerifySignedFileCommand(
+                FileName: dto.File.FileName,
+                ContentType: dto.File.ContentType,
+                FileBytes: fileBytes),
+            ct);
+
+        return Ok(new VerifySignedFileResponseDto
+        {
+            IsValid = result.IsValid,
+            Format = result.Format,
+            Message = result.Message,
+            SignerName = result.SignerName,
+            CertificateSubject = result.CertificateSubject,
+            SigningTime = result.SigningTime,
+        });
     }
 
     private static float? ParseInvariantNullableFloat(string? value, string fieldName)

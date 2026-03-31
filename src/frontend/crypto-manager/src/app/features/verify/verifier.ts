@@ -5,10 +5,17 @@ import { CryptoManagerApi } from '../../core/api/cryptomanager-api.service';
 import { CryptoService } from '../../core/services/crypto.service';
 
 export type PublicKeySource = 'select' | 'paste' | 'upload';
+export type VerifyMode = 'signature-file' | 'signed-file';
 
 export interface VerifyResult {
   valid: boolean;
-  mechanism: string;
+  mode: VerifyMode;
+  mechanism?: string;
+  format?: string;
+  message?: string;
+  signerName?: string | null;
+  certificateSubject?: string | null;
+  signingTime?: string | null;
 }
 
 interface AlgorithmSpec {
@@ -78,7 +85,20 @@ export class Verifier {
     return this.cryptoService.verifySignature(mechanism, dataBytes, sigBuffer, spkiBuffer);
   }
 
-  // Converts an ASN.1 DER-encoded ECDSA signature to IEEE P1363 (raw r‖s) format
+  async verifySignedFile(file: File): Promise<VerifyResult> {
+    const response = await firstValueFrom(this.api.verifySignedFile(file));
+    return {
+      valid: response.isValid,
+      mode: 'signed-file',
+      format: response.format,
+      message: response.message,
+      signerName: response.signerName,
+      certificateSubject: response.certificateSubject,
+      signingTime: response.signingTime,
+    };
+  }
+
+  // Converts an ASN.1 DER-encoded ECDSA signature to IEEE P1363 format (raw r||s)
   // required by crypto.subtle.verify.
   private derToP1363(der: Uint8Array, coordLen: number): Uint8Array {
     if (der[0] !== 0x30) throw new Error('Invalid ECDSA signature: expected DER SEQUENCE (0x30)');

@@ -23,7 +23,7 @@
 
 @if (hasPendingEnrollment()) {
 <p-message severity="info" styleClass="mb-4 block">
-    Certificate enrollment is in progress. The page refreshes automatically while waiting for the CA response.
+    Certificate enrollment is in progress.
 </p-message>
 }
 
@@ -76,32 +76,38 @@
         <div class="grid gap-4 md:grid-cols-2">
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Subject DN</div>
-                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.subjectDN ?? 'Pending enrollment' }}</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.subjectDN ?? 'Pending enrollment'
+                    }}</div>
             </div>
 
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Issuer DN</div>
-                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.issuerDN ?? 'Pending enrollment' }}</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.issuerDN ?? 'Pending enrollment' }}
+                </div>
             </div>
 
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Thumbprint</div>
-                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.thumbprint ?? 'Pending enrollment' }}</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.thumbprint ?? 'Pending enrollment'
+                    }}</div>
             </div>
 
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Serial Number</div>
-                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.serialNumber ?? 'Pending enrollment' }}</div>
+                <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.serialNumber ?? 'Pending
+                    enrollment' }}</div>
             </div>
 
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Valid From</div>
-                <div class="mt-1 text-sm text-slate-700">{{ cert.notBefore ? (cert.notBefore | date:'medium') : 'Pending enrollment' }}</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notBefore ? (cert.notBefore | date:'medium') : 'Pending
+                    enrollment' }}</div>
             </div>
 
             <div>
                 <div class="text-xs uppercase tracking-wide text-slate-500">Valid To</div>
-                <div class="mt-1 text-sm text-slate-700">{{ cert.notAfter ? (cert.notAfter | date:'medium') : 'Pending enrollment' }}</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notAfter ? (cert.notAfter | date:'medium') : 'Pending
+                    enrollment' }}</div>
             </div>
 
             <div>

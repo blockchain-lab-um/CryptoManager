@@ -19,9 +19,19 @@
             <div>
                 <label class="text-xs text-slate-500" for="sign-key">Key</label>
                 <p-select id="sign-key" class="w-full mt-1" [options]="keyOptions()" placeholder="Select a key"
-                    formControlName="keyId" [loading]="keysService.keysResource.isLoading()" [filter]="true"
+                    formControlName="keyId" optionLabel="label" optionValue="value"
+                    [loading]="keysService.keysResource.isLoading()" [filter]="true"
                     filterPlaceholder="Search keys..."></p-select>
             </div>
+
+            @if (activeCertMissing()) {
+            <p-message severity="warn" styleClass="w-full">
+                This key has no active certificate. Document signing requires an active certificate.
+                <a [routerLink]="['/keys', selectedKeyId(), 'certificates']" class="ml-1 underline">
+                    Set up a certificate for this key
+                </a>
+            </p-message>
+            }
 
             <div>
                 <label class="text-xs text-slate-500" for="sign-mechanism">Mechanism</label>
@@ -44,10 +54,10 @@
             </div>
             } @else {
             <div>
-                <!-- <label class="text-xs text-slate-500 m-1 block">Return format</label>
+                <label class="text-xs text-slate-500 m-1 block">Return format</label>
                 <p-selectButton styleClass="w-full" class="w-full" [options]="returnFormatOptions"
                     [ngModel]="signatureReturnFormat()" (ngModelChange)="signatureReturnFormat.set($event)"
-                    [ngModelOptions]="{ standalone: true }" aria-label="Return format"></p-selectButton> -->
+                    [ngModelOptions]="{ standalone: true }" aria-label="Return format"></p-selectButton>
 
                 <label class="text-xs text-slate-500 block m-1 mt-3" for="sign-file">File to sign</label>
                 <input id="sign-file" type="file" (change)="onFileSelected($event)" class="block w-full text-sm text-slate-600
@@ -66,7 +76,7 @@
             <p-button icon="pi pi-download" styleClass="w-full mb-3" severity="secondary" label="Download Binary Digest"
                 (onClick)="downloadBinaryDigest()"></p-button>
             <button pButton type="button" label="Sign" class="w-full p-button" [loading]="signing()"
-                (click)="onSign()"></button>
+                [disabled]="signing() || activeCertMissing()" (click)="onSign()"></button>
         </div>
     </app-card>
 

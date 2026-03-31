@@ -1,6 +1,8 @@
 using CryptoManager.Application.Abstractions;
 using CryptoManager.Application.DTOs;
 using CryptoManager.Domain.ValueObjects;
+using Microsoft.Extensions.Logging;
+using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using PdfSharp.Pdf.Signatures;
 
@@ -12,6 +14,13 @@ namespace CryptoManager.Infrastructure.Crypto;
 /// </summary>
 public sealed class PadesSigner : IPadesSigner
 {
+    private readonly ILogger<HsmBackedPdfSigner> _pdfSignerLogger;
+
+    public PadesSigner(ILogger<HsmBackedPdfSigner> pdfSignerLogger)
+    {
+        _pdfSignerLogger = pdfSignerLogger;
+    }
+
     public async Task<(string OutputFileName, byte[] Bytes)> SignPdfAsync(
         string originalFileName,
         byte[] pdfBytes,
@@ -24,7 +33,8 @@ public sealed class PadesSigner : IPadesSigner
         var signer = new HsmBackedPdfSigner(
             material.CertBundle.LeafDer,
             material.CertBundle.ChainDer,
-            material.SignDigestAsync);
+            material.SignDigestAsync,
+            _pdfSignerLogger);
 
         byte[] signed;
         using (var inputStream = new MemoryStream(pdfBytes))
@@ -32,7 +42,11 @@ public sealed class PadesSigner : IPadesSigner
         {
             var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);
 
+            var originalModDate = document.Info.ModificationDate;
+
             DigitalSignatureHandler.ForDocument(document, signer, new DigitalSignatureOptions());
+            
+            document.Info.ModificationDate = originalModDate;
             document.Save(outputStream, closeStream: false);
             signed = outputStream.ToArray();
         }

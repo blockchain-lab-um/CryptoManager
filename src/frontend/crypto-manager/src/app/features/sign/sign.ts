@@ -88,22 +88,20 @@ export class SignPage {
   );
   readonly fileSigningSelected = computed(() => this.inputMode() === 'file');
   readonly activeCertResource = rxResource({
-    stream: () => {
+    params: () => {
       const keyId = this.selectedKeyId();
-      if (!keyId) {
-        return of(null);
-      }
-
-      return this.api.getActiveCertificate(keyId).pipe(
-        catchError(err => err.status === 404 ? of(null) : throwError(() => err))
-      );
+      return this.fileSigningSelected() && keyId ? keyId : undefined;
     },
+    stream: ({ params: keyId }) =>
+      this.api.getActiveCertificate(keyId).pipe(
+        catchError(err => err.status === 404 ? of(null) : throwError(() => err))
+      ),
   });
   readonly activeCertMissing = computed(() => {
     const keyId = this.selectedKeyId();
 
     return (
-      this.fileSigningSelected() &&
+      this.fileSigningSelected() && this.signatureReturnFormat() === 'file' &&
       !!keyId &&
       !this.activeCertResource.isLoading() &&
       this.activeCertResource.value() === null
@@ -182,7 +180,7 @@ export class SignPage {
     try {
       const data = await this.getInputBytes();
 
-      const source$ = this.signatureReturnFormat() === 'file'
+      const source$ = this.inputMode() === 'file' && this.signatureReturnFormat() === 'file'
         ? this.signer.signFile(keyId!, mechanism!, this.selectedFile()!)
         : this.signer.signDigest(keyId!, mechanism!, data);
 

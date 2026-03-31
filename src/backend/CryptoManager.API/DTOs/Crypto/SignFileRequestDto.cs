@@ -12,5 +12,12 @@ namespace CryptoManager.API.DTOs.Crypto
 
         [Required]
         public IFormFile File { get; init; } = default!;
+
+        public bool AddStamp { get; init; } = true;
+        public string? StampX { get; init; }
+        public string? StampY { get; init; }
+        public string? StampWidth { get; init; }
+        public string? StampHeight { get; init; }
+        public string? StampRotation { get; init; }
     }
 }

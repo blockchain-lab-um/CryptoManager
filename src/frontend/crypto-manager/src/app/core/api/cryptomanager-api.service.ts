@@ -55,6 +55,12 @@ export class CryptoManagerApi {
     formData.append('keyId', dto.keyId);
     formData.append('mechanism', dto.mechanism);
     formData.append('file', dto.file);
+    formData.append('addStamp', String(dto.addStamp ?? true));
+    if (dto.stampX        != null) formData.append('stampX',        String(dto.stampX));
+    if (dto.stampY        != null) formData.append('stampY',        String(dto.stampY));
+    if (dto.stampWidth    != null) formData.append('stampWidth',    String(dto.stampWidth));
+    if (dto.stampHeight   != null) formData.append('stampHeight',   String(dto.stampHeight));
+    if (dto.stampRotation != null) formData.append('stampRotation', String(dto.stampRotation));
 
     return this.http.post(`${this.base}/api/Crypto/sign-file`, formData, {
       responseType: 'blob',

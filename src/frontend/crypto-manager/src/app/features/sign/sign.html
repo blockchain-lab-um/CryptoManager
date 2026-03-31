@@ -65,12 +65,31 @@
                             file:text-sm file:font-medium file:bg-slate-100
                             file:text-slate-700 hover:file:bg-slate-200
                             cursor-pointer" />
-                @if (selectedFile(); as file) {
-                <div class="mt-2 text-xs text-slate-500">
-                    {{ file.name }} ({{ file.size | number }} bytes)
+
+                @if (isPdf() && signatureReturnFormat() === 'file') {
+                <div class="flex flex-wrap items-center gap-3 mt-3">
+                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input type="checkbox" [checked]="addStamp()"
+                            (change)="addStamp.set($any($event.target).checked)" class="rounded border-slate-300" />
+                        Add signature stamp
+                    </label>
+                    @if (addStamp()) {
+                    <button pButton type="button" label="Adjust position" icon="pi pi-arrows-alt" [outlined]="true"
+                        size="small" (click)="stampDialogVisible.set(true)"></button>
+                    @if (stampPosition()) {
+                    <span class="text-xs text-green-600 font-medium">Custom position set</span>
+                    }
+                    }
                 </div>
                 }
             </div>
+            }
+
+            @if (isPdf() && addStamp() && stampDialogVisible()) {
+            <app-stamp-position-dialog [visible]="stampDialogVisible()" (visibleChange)="stampDialogVisible.set($event)"
+                [pdfFile]="selectedFile()!" [initialPosition]="stampPosition()"
+                (applied)="onStampPositionApplied($event)">
+            </app-stamp-position-dialog>
             }
 
             <p-button icon="pi pi-download" styleClass="w-full mb-3" severity="secondary" label="Download Binary Digest"

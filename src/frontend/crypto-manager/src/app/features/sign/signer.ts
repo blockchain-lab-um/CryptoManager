@@ -4,6 +4,7 @@ import { Observable, from, map, switchMap } from 'rxjs';
 import { CryptoManagerApi } from '../../core/api/cryptomanager-api.service';
 import { CryptoService } from '../../core/services/crypto.service';
 import { DownloadService } from '../../core/services/download.service';
+import { StampPosition } from '../../core/api/models';
 
 export interface SignResult {
   format: 'signature' | 'file';
@@ -20,8 +21,23 @@ export class Signer {
   private cryptoService = inject(CryptoService);
   private downloadService = inject(DownloadService);
 
-  signFile(keyId: string, mechanism: string, file: File): Observable<SignResult> {
-    return this.api.signFile({ keyId, mechanism, file }).pipe(
+  signFile(
+    keyId: string,
+    mechanism: string,
+    file: File,
+    stampOptions?: { addStamp: boolean; position: StampPosition | null }
+  ): Observable<SignResult> {
+    return this.api.signFile({
+      keyId,
+      mechanism,
+      file,
+      addStamp: stampOptions?.addStamp ?? true,
+      stampX: stampOptions?.position?.x,
+      stampY: stampOptions?.position?.y,
+      stampWidth: stampOptions?.position?.width,
+      stampHeight: stampOptions?.position?.height,
+      stampRotation: stampOptions?.position?.rotation,
+    }).pipe(
       map(res => ({
         format: 'file' as const,
         keyVersion: res.keyVersion,

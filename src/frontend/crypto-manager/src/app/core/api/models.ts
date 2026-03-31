@@ -34,6 +34,20 @@ export interface SignFileRequestDto {
     keyId: string;
     mechanism: string;
     file: File;
+    addStamp?: boolean;
+    stampX?: number;
+    stampY?: number;
+    stampWidth?: number;
+    stampHeight?: number;
+    stampRotation?: number;
+}
+
+export interface StampPosition {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
 }
 
 export interface SignFileResponseDto {

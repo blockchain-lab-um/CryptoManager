@@ -5,6 +5,7 @@ using CryptoManager.Domain.Exceptions;
 using CryptoManager.Domain.ValueObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 
 namespace CryptoManager.API.Controllers;
 
@@ -76,13 +77,22 @@ public sealed class CryptoController : ControllerBase
             fileBytes = ms.ToArray();
         }
 
+        var stamp = new StampOptions(
+            Enabled: dto.AddStamp,
+            X: ParseInvariantNullableFloat(dto.StampX, nameof(dto.StampX)),
+            Y: ParseInvariantNullableFloat(dto.StampY, nameof(dto.StampY)),
+            Width: ParseInvariantNullableFloat(dto.StampWidth, nameof(dto.StampWidth)),
+            Height: ParseInvariantNullableFloat(dto.StampHeight, nameof(dto.StampHeight)),
+            RotationDegrees: ParseInvariantNullableFloat(dto.StampRotation, nameof(dto.StampRotation)) ?? 0f);
+
         var result = await _signDocument.ExecuteAsync(
             new SignFileCommand(
                 KeyId: keyId,
                 Mechanism: mechanism,
                 OriginalFileName: dto.File.FileName,
                 OriginalContentType: dto.File.ContentType,
-                FileBytes: fileBytes),
+                FileBytes: fileBytes,
+                Stamp: stamp),
             ct);
 
         Response.Headers["X-Audit-Event-Id"] = result.AuditEventId.ToString();
@@ -96,5 +106,16 @@ public sealed class CryptoController : ControllerBase
             fileContents: result.SignedFileBytes,
             contentType: result.OutputContentType,
             fileDownloadName: result.OutputFileName);
+    }
+
+    private static float? ParseInvariantNullableFloat(string? value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+            return parsed;
+
+        throw new DomainException($"{fieldName} must be a valid decimal number using '.' as the decimal separator.");
     }
 }

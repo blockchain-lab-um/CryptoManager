@@ -115,7 +115,7 @@ public sealed class SignDocumentUseCase
                 SignedAt:         _clock.UtcNow);
 
             signed = await _artifactBuilder.SignAsync(
-                command.OriginalFileName, command.FileBytes, material, ct);
+                command.OriginalFileName, command.FileBytes, material, command.Stamp, ct);
         }
         catch (Exception ex)
         {

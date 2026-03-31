@@ -8,5 +8,6 @@ public interface IPadesSigner
         string originalFileName,
         byte[] pdfBytes,
         DocumentSigningMaterial material,
+        StampOptions? stamp,
         CancellationToken ct);
 }

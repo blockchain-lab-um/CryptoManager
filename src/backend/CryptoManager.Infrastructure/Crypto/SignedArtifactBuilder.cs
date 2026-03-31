@@ -20,6 +20,7 @@ public sealed class SignedArtifactBuilder : ISignedArtifactBuilder
         string originalFileName,
         byte[] fileBytes,
         DocumentSigningMaterial material,
+        StampOptions? stamp,
         CancellationToken ct)
     {
         if (material.Mechanism == Mechanism.EcdsaP256Sha256Der)
@@ -28,7 +29,7 @@ public sealed class SignedArtifactBuilder : ISignedArtifactBuilder
         if (LooksLikePdf(fileBytes))
         {
             var (outputFileName, bytes) = await _padesSigner.SignPdfAsync(
-                originalFileName, fileBytes, material, ct);
+                originalFileName, fileBytes, material, stamp, ct);
             return new SignedArtifact("PAdES", outputFileName, "application/pdf", bytes);
         }
         else

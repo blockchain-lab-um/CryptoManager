@@ -19,6 +19,8 @@ import { KeysService } from '../keys/keys.service';
 import { Card } from '../../shared/components/card/card';
 import { toKeySelectOptions } from '../keys/keys.utils';
 import { Signer, SignResult } from './signer';
+import { StampPosition } from '../../core/api/models';
+import { StampPositionDialog } from './stamp-position-dialog';
 
 type InputMode = 'text' | 'file';
 type ReturnFormat = 'signature' | 'file';
@@ -38,6 +40,7 @@ export type { SignResult };
     SelectButtonModule,
     Card,
     RouterLink,
+    StampPositionDialog,
   ],
   templateUrl: './sign.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,6 +82,10 @@ export class SignPage {
   inputMode = signal<InputMode>('text');
   signatureReturnFormat = signal<ReturnFormat>('signature');
   selectedFile = signal<File | null>(null);
+  isPdf = signal(false);
+  addStamp = signal(true);
+  stampPosition = signal<StampPosition | null>(null);
+  stampDialogVisible = signal(false);
   result = signal<SignResult | null>(null);
   error = signal<string | null>(null);
   signing = signal(false);
@@ -117,9 +124,31 @@ export class SignPage {
     if (keyId) this.form.patchValue({ keyId });
   }
 
-  onFileSelected(event: Event) {
+  async onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    this.selectedFile.set(input.files?.[0] ?? null);
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+    this.stampPosition.set(null);
+
+    if (file) {
+      const bytes = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+      const magic =
+        bytes[0] === 0x25 &&
+        bytes[1] === 0x50 &&
+        bytes[2] === 0x44 &&
+        bytes[3] === 0x46 &&
+        bytes[4] === 0x2d;
+      this.isPdf.set(magic);
+    } else {
+      this.isPdf.set(false);
+    }
+  }
+
+  onStampPositionApplied(pos: StampPosition | null) {
+    if (pos !== null) {
+      this.stampPosition.set(pos);
+    }
+    this.stampDialogVisible.set(false);
   }
 
   hasInput(): boolean {
@@ -181,7 +210,10 @@ export class SignPage {
       const data = await this.getInputBytes();
 
       const source$ = this.inputMode() === 'file' && this.signatureReturnFormat() === 'file'
-        ? this.signer.signFile(keyId!, mechanism!, this.selectedFile()!)
+        ? this.signer.signFile(keyId!, mechanism!, this.selectedFile()!, {
+            addStamp: this.isPdf() ? this.addStamp() : false,
+            position: this.stampPosition(),
+          })
         : this.signer.signDigest(keyId!, mechanism!, data);
 
       source$.subscribe({

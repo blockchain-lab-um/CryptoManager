@@ -12,6 +12,7 @@ namespace CryptoManager.Application.DTOs
         Mechanism Mechanism,
         string OriginalFileName,
         string? OriginalContentType,
-        byte[] FileBytes
+        byte[] FileBytes,
+        StampOptions? Stamp
     );
 }

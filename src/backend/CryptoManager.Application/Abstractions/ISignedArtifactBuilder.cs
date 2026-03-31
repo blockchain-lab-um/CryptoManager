@@ -8,5 +8,6 @@ public interface ISignedArtifactBuilder
         string originalFileName,
         byte[] fileBytes,
         DocumentSigningMaterial material,
+        StampOptions? stamp,
         CancellationToken ct);
 }

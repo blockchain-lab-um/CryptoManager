@@ -110,7 +110,9 @@ public sealed class SignDocumentUseCase
             var material = new DocumentSigningMaterial(
                 Mechanism:        command.Mechanism,
                 CertBundle:       new RawCertBundle(cert.CertificateDer!, cert.ChainDer ?? []),
-                SignDigestAsync:   digest => provider.SignDigestAsync(keyVersion.ProviderRef, command.Mechanism, digest));
+                SignDigestAsync:  digest => provider.SignDigestAsync(keyVersion.ProviderRef, command.Mechanism, digest),
+                RequestedBy:      _currentUser.Actor,
+                SignedAt:         _clock.UtcNow);
 
             signed = await _artifactBuilder.SignAsync(
                 command.OriginalFileName, command.FileBytes, material, ct);

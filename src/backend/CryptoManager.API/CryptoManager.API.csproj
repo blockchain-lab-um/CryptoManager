@@ -29,4 +29,19 @@
     <ProjectReference Include="..\CryptoManager.Infrastructure\CryptoManager.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\frontend\crypto-manager\public\fonts\Switzer-Regular.ttf" Link="Fonts\Switzer-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\frontend\crypto-manager\public\fonts\Switzer-Semibold.ttf" Link="Fonts\Switzer-Semibold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\frontend\crypto-manager\public\fonts\Switzer-Italic.ttf" Link="Fonts\Switzer-Italic.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\frontend\crypto-manager\public\fonts\Switzer-SemiboldItalic.ttf" Link="Fonts\Switzer-SemiboldItalic.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

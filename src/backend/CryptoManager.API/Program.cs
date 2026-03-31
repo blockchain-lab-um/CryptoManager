@@ -10,6 +10,7 @@ using CryptoManager.Infrastructure.HSM;
 using CryptoManager.Infrastructure.HSM.PKCS11;
 using CryptoManager.Infrastructure.HSM.SoftHSM;
 using CryptoManager.Infrastructure.Identity;
+using CryptoManager.Infrastructure.Pdf;
 using CryptoManager.Infrastructure.Persistence.EntityFramework;
 using CryptoManager.Infrastructure.Persistence.EntityFramework.Repositories;
 using CryptoManager.Infrastructure.Time;
@@ -18,9 +19,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Net.Pkcs11Interop.HighLevelAPI;
+using PdfSharp.Fonts;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (GlobalFontSettings.FontResolver is null)
+{
+    var fontDirectory = Path.Combine(AppContext.BaseDirectory, "Fonts");
+    GlobalFontSettings.FontResolver = new SwitzerFontResolver(fontDirectory);
+}
 
 builder.Services.AddCors(options =>
 {

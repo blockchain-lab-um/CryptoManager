@@ -22,4 +22,6 @@ namespace CryptoManager.Application.DTOs;
 public record DocumentSigningMaterial(
     Mechanism Mechanism,
     RawCertBundle CertBundle,
-    Func<byte[], Task<byte[]>> SignDigestAsync);
+    Func<byte[], Task<byte[]>> SignDigestAsync,
+    string RequestedBy,
+    DateTimeOffset SignedAt);

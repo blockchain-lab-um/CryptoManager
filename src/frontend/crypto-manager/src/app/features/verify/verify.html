@@ -27,15 +27,11 @@
             <div>
                 <label class="text-xs text-slate-500 block mb-1" for="verify-signed-file">Signed file</label>
                 <input id="verify-signed-file" type="file" accept=".pdf,.p7m,application/pdf,application/pkcs7-mime"
-                    (change)="onSignedFileSelected($event)"
-                    class="block w-full text-sm text-slate-600
+                    (change)="onSignedFileSelected($event)" class="block w-full text-sm text-slate-600
                         file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                         file:text-sm file:font-medium file:bg-slate-100
                         file:text-slate-700 hover:file:bg-slate-200
                         cursor-pointer" />
-                @if (selectedSignedFile(); as file) {
-                <div class="mt-2 text-xs text-slate-500">{{ file.name }} ({{ file.size | number }} bytes)</div>
-                }
             </div>
             } @else {
             <div>
@@ -46,9 +42,9 @@
 
             <div>
                 <label class="text-xs text-slate-500 mb-1 block">Data to verify</label>
-                <p-selectButton styleClass="w-full" class="w-full" [options]="inputModeOptions"
-                    [ngModel]="inputMode()" (ngModelChange)="inputMode.set($event)"
-                    [ngModelOptions]="{ standalone: true }" aria-label="Input mode"></p-selectButton>
+                <p-selectButton styleClass="w-full" class="w-full" [options]="inputModeOptions" [ngModel]="inputMode()"
+                    (ngModelChange)="inputMode.set($event)" [ngModelOptions]="{ standalone: true }"
+                    aria-label="Input mode"></p-selectButton>
             </div>
 
             @if (inputMode() === 'text') {
@@ -61,30 +57,22 @@
             } @else {
             <div>
                 <label class="text-xs text-slate-500 block mb-1" for="verify-data-file">Original file</label>
-                <input id="verify-data-file" type="file" (change)="onDataFileSelected($event)"
-                    class="block w-full text-sm text-slate-600
+                <input id="verify-data-file" type="file" (change)="onDataFileSelected($event)" class="block w-full text-sm text-slate-600
                         file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                         file:text-sm file:font-medium file:bg-slate-100
                         file:text-slate-700 hover:file:bg-slate-200
                         cursor-pointer" />
-                @if (selectedDataFile(); as file) {
-                <div class="mt-2 text-xs text-slate-500">{{ file.name }} ({{ file.size | number }} bytes)</div>
-                }
             </div>
             }
 
             <div>
                 <label class="text-xs text-slate-500 block mb-1" for="verify-sig-file">Signature file
                     (.bin)</label>
-                <input id="verify-sig-file" type="file" accept=".bin" (change)="onSignatureFileSelected($event)"
-                    class="block w-full text-sm text-slate-600
+                <input id="verify-sig-file" type="file" accept=".bin" (change)="onSignatureFileSelected($event)" class="block w-full text-sm text-slate-600
                         file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                         file:text-sm file:font-medium file:bg-slate-100
                         file:text-slate-700 hover:file:bg-slate-200
                         cursor-pointer" />
-                @if (selectedSignatureFile(); as file) {
-                <div class="mt-2 text-xs text-slate-500">{{ file.name }} ({{ file.size | number }} bytes)</div>
-                }
             </div>
 
             <div>
@@ -97,9 +85,8 @@
             @if (publicKeySource() === 'select') {
             <div>
                 <label class="text-xs text-slate-500" for="verify-key">Key</label>
-                <p-select id="verify-key" class="w-full mt-1" [options]="keyOptions()"
-                    placeholder="Select a key" formControlName="keyId"
-                    [loading]="keysService.keysResource.isLoading()" [filter]="true"
+                <p-select id="verify-key" class="w-full mt-1" [options]="keyOptions()" placeholder="Select a key"
+                    formControlName="keyId" [loading]="keysService.keysResource.isLoading()" [filter]="true"
                     filterPlaceholder="Search keys..."></p-select>
             </div>
             } @else if (publicKeySource() === 'paste') {
@@ -113,16 +100,12 @@
             <div>
                 <label class="text-xs text-slate-500 block mb-1" for="verify-pem-file">Public key file
                     (.pem)</label>
-                <input id="verify-pem-file" type="file" accept=".pem,.crt,.cer"
-                    (change)="onPemFileSelected($event)"
+                <input id="verify-pem-file" type="file" accept=".pem,.crt,.cer" (change)="onPemFileSelected($event)"
                     class="block w-full text-sm text-slate-600
                         file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                         file:text-sm file:font-medium file:bg-slate-100
                         file:text-slate-700 hover:file:bg-slate-200
                         cursor-pointer" />
-                @if (selectedPemFile(); as file) {
-                <div class="mt-2 text-xs text-slate-500">{{ file.name }}</div>
-                }
             </div>
             }
             }
@@ -142,11 +125,11 @@
                 <div class="flex flex-col items-center justify-center gap-3 rounded-xl border p-8"
                     [class.border-green-200]="res.valid" [class.bg-green-50]="res.valid"
                     [class.border-red-200]="!res.valid" [class.bg-red-50]="!res.valid">
-                    <i class="pi text-5xl" aria-hidden="true"
-                        [class.pi-check-circle]="res.valid" [class.text-green-600]="res.valid"
-                        [class.pi-times-circle]="!res.valid" [class.text-red-600]="!res.valid"></i>
-                    <span class="text-lg font-semibold"
-                        [class.text-green-700]="res.valid" [class.text-red-700]="!res.valid">
+                    <i class="pi text-5xl" aria-hidden="true" [class.pi-check-circle]="res.valid"
+                        [class.text-green-600]="res.valid" [class.pi-times-circle]="!res.valid"
+                        [class.text-red-600]="!res.valid"></i>
+                    <span class="text-lg font-semibold" [class.text-green-700]="res.valid"
+                        [class.text-red-700]="!res.valid">
                         {{ res.valid ? 'Signature is valid' : 'Signature is invalid' }}
                     </span>
                 </div>

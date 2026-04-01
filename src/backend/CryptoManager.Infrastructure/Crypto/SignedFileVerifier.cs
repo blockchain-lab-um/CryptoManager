@@ -45,16 +45,24 @@ public sealed class SignedFileVerifier : ISignedFileVerifier
         Buffer.BlockCopy(pdfBytes, rangeStart0, signedBytes, 0, rangeLength0);
         Buffer.BlockCopy(pdfBytes, rangeStart1, signedBytes, rangeLength0, rangeLength1);
 
-        try
+        Exception? lastError = null;
+        foreach (var cmsBytes in ExtractPdfSignatureContentsCandidates(pdfBytes, rangeStart0, rangeLength0, rangeStart1))
         {
-            var cmsBytes = DecodePdfSignatureContents(pdfBytes, rangeStart0, rangeLength0, rangeStart1);
-            var cms = new CmsSignedData(new CmsProcessableByteArray(signedBytes), cmsBytes);
-            return VerifyCmsSignedData(cms, "PAdES");
+            try
+            {
+                var cms = new CmsSignedData(new CmsProcessableByteArray(signedBytes), cmsBytes);
+                return VerifyCmsSignedData(cms, "PAdES");
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
         }
-        catch (Exception ex)
-        {
-            return new VerifySignedFileResult(false, "PAdES", $"Embedded CMS signature could not be verified: {ex.Message}");
-        }
+
+        return new VerifySignedFileResult(
+            false,
+            "PAdES",
+            $"Embedded CMS signature could not be verified: {lastError?.Message ?? "Unknown CMS parsing error."}");
     }
 
     private static VerifySignedFileResult VerifyCmsContainer(byte[] fileBytes)
@@ -139,7 +147,7 @@ public sealed class SignedFileVerifier : ISignedFileVerifier
         return true;
     }
 
-    private static byte[] DecodePdfSignatureContents(byte[] pdfBytes, int rangeStart0, int rangeLength0, int rangeStart1)
+    private static IEnumerable<byte[]> ExtractPdfSignatureContentsCandidates(byte[] pdfBytes, int rangeStart0, int rangeLength0, int rangeStart1)
     {
         var gapStart = rangeStart0 + rangeLength0;
         var gapLength = rangeStart1 - gapStart;
@@ -157,12 +165,80 @@ public sealed class SignedFileVerifier : ISignedFileVerifier
         if (cleaned.Length == 0)
             throw new InvalidOperationException("Embedded PDF signature contents are empty.");
 
-        var cmsBytes = Convert.FromHexString(cleaned);
-        var trimmedLength = cmsBytes.Length;
-        while (trimmedLength > 0 && cmsBytes[trimmedLength - 1] == 0x00)
+        var placeholderBytes = Convert.FromHexString(cleaned);
+        var startOffset = FindCmsObjectStart(placeholderBytes);
+        var bytes = startOffset >= 0 ? placeholderBytes[startOffset..] : placeholderBytes;
+        var yieldedLengths = new HashSet<int>();
+
+        if (TryGetDerObjectLength(bytes, out var cmsLength) && yieldedLengths.Add(cmsLength))
+            yield return bytes[..cmsLength];
+
+        if (bytes.Length >= 2 && bytes[0] == 0x30 && bytes[1] == 0x80)
+        {
+            var trailingZeroCount = 0;
+            for (var i = bytes.Length - 1; i >= 0 && bytes[i] == 0x00; i--)
+                trailingZeroCount++;
+
+            if (trailingZeroCount >= 2)
+            {
+                var contentEnd = bytes.Length - trailingZeroCount;
+                var maxCandidateZeroBytes = Math.Min(trailingZeroCount, 32);
+                for (var zeroBytes = 2; zeroBytes <= maxCandidateZeroBytes; zeroBytes += 2)
+                {
+                    var candidateLength = contentEnd + zeroBytes;
+                    if (candidateLength > 0 && candidateLength <= bytes.Length && yieldedLengths.Add(candidateLength))
+                        yield return bytes[..candidateLength];
+                }
+            }
+        }
+
+        var trimmedLength = bytes.Length;
+        while (trimmedLength > 0 && bytes[trimmedLength - 1] == 0x00)
             trimmedLength--;
 
-        return trimmedLength == cmsBytes.Length ? cmsBytes : cmsBytes[..trimmedLength];
+        if (trimmedLength > 0 && yieldedLengths.Add(trimmedLength))
+            yield return bytes[..trimmedLength];
+
+        if (yieldedLengths.Add(bytes.Length))
+            yield return bytes;
+    }
+
+    private static int FindCmsObjectStart(byte[] bytes)
+    {
+        for (int i = 0; i < bytes.Length - 1; i++)
+        {
+            if (bytes[i] == 0x30)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private static bool TryGetDerObjectLength(ReadOnlySpan<byte> bytes, out int totalLength)
+    {
+        totalLength = 0;
+        if (bytes.Length < 2)
+            return false;
+
+        int lengthByte = bytes[1];
+        if ((lengthByte & 0x80) == 0)
+        {
+            totalLength = 2 + lengthByte;
+            return totalLength <= bytes.Length;
+        }
+
+        int lengthOctetCount = lengthByte & 0x7F;
+        if (lengthOctetCount <= 0 || lengthOctetCount > 4 || bytes.Length < 2 + lengthOctetCount)
+            return false;
+
+        int contentLength = 0;
+        for (int i = 0; i < lengthOctetCount; i++)
+        {
+            contentLength = (contentLength << 8) | bytes[2 + i];
+        }
+
+        totalLength = 2 + lengthOctetCount + contentLength;
+        return totalLength > 0 && totalLength <= bytes.Length;
     }
 
     private static string GetCertificateCommonName(X509Certificate certificate)

@@ -157,10 +157,13 @@ builder.Services.AddSingleton<IHsmProviderRegistry>(
     new HsmProviderRegistry(providers, defaultProviderId: defaults[0].Id));
 builder.Services.AddScoped<IKeyRepository, KeyRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+builder.Services.AddScoped<ISystemCertificateAuthorityRepository, SystemCertificateAuthorityRepository>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 builder.Services.AddScoped<IAuditSink, AuditSink>();
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<HsmBackedCertificateFactory>();
+builder.Services.AddSingleton<ISoftCaBootstrapper, SoftCaBootstrapper>();
 builder.Services.AddSingleton<ICertificateAuthority, SoftSelfSignedCertificateAuthority>();
 builder.Services.AddScoped<ICsrBuilder, BouncyCastleCsrBuilder>();
 builder.Services.AddScoped<ICertificateValidator, BouncyCastleCertificateValidator>();
@@ -199,6 +202,8 @@ using (var scope = app.Services.CreateScope())
 
     var db = sp.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    await sp.GetRequiredService<ISoftCaBootstrapper>().EnsureInitializedAsync();
 
     var roleManager = sp.GetRequiredService<RoleManager<ApplicationRole>>();
     foreach (var roleName in new[] { "Admin", "Operator" })

@@ -41,6 +41,11 @@ internal sealed class KeyVersionConfiguration : IEntityTypeConfiguration<KeyVers
         // ProviderRef — owned entity, two columns on the same table.
         builder.OwnsOne(kv => kv.ProviderRef, pr =>
         {
+            pr.Property(p => p.ProviderInstanceId)
+                .HasColumnName("ProviderInstanceId")
+                .HasMaxLength(100)
+                .IsRequired();
+
             pr.Property(p => p.ProviderType)
                 .HasColumnName("ProviderType")
                 .HasMaxLength(50)

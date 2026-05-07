@@ -84,6 +84,13 @@ export class CryptoManagerApi {
     return this.http.post<VerifySignedFileResponseDto>(`${this.base}/api/Crypto/verify-file`, formData);
   }
 
+  downloadSystemCaCertificate() {
+    return this.http.get(`${this.base}/api/System/ca-certificate`, {
+      responseType: 'blob',
+      observe: 'response'
+    });
+  }
+
   listKeys() {
     return this.http.get<ListKeysResponseDto>(`${this.base}/api/Keys`);
   }

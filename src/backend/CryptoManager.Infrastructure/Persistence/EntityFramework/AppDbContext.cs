@@ -11,6 +11,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     public DbSet<Key> Keys => Set<Key>();
     public DbSet<Certificate> Certificates => Set<Certificate>();
+    public DbSet<SystemCertificateAuthority> SystemCertificateAuthorities => Set<SystemCertificateAuthority>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

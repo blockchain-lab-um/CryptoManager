@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace CryptoManager.Infrastructure.Persistence.Migrations
+namespace CryptoManager.Infrastructure.Persistence.EntityFramework.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260312145655_AddIdentity")]
-    partial class AddIdentity
+    [Migration("20260401110530_InitialReset")]
+    partial class InitialReset
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,6 +40,17 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("CertificateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CertificateThumbprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Error")
                         .HasMaxLength(2000)
@@ -68,11 +79,92 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Actor");
+
+                    b.HasIndex("ActorId");
+
                     b.HasIndex("KeyId");
 
                     b.HasIndex("Timestamp");
 
+                    b.HasIndex("ActorId", "Timestamp");
+
                     b.ToTable("AuditEvents", (string)null);
+                });
+
+            modelBuilder.Entity("CryptoManager.Domain.Entities.Certificate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("Id");
+
+                    b.Property<byte[]>("CertificateDer")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ChainDer")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EnrollmentId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("IssuerDN")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("KeyVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("KeyVersionId");
+
+                    b.Property<DateTimeOffset?>("NotAfter")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NotBefore")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SubjectDN")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Thumbprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyVersionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_certificates_keyversion")
+                        .HasFilter("\"Status\" = 'Active'");
+
+                    b.HasIndex("Thumbprint")
+                        .IsUnique()
+                        .HasDatabaseName("ix_certificates_thumbprint")
+                        .HasFilter("\"Thumbprint\" IS NOT NULL");
+
+                    b.ToTable("Certificates", (string)null);
                 });
 
             modelBuilder.Entity("CryptoManager.Domain.Entities.Key", b =>
@@ -116,7 +208,7 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("Name", "OwnerId")
                         .IsUnique();
 
                     b.ToTable("Keys", (string)null);
@@ -154,6 +246,50 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("KeyVersions", (string)null);
+                });
+
+            modelBuilder.Entity("CryptoManager.Domain.Entities.SystemCertificateAuthority", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("CertificateDer")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubjectDn")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Thumbprint")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SystemCertificateAuthorities", (string)null);
                 });
 
             modelBuilder.Entity("CryptoManager.Infrastructure.Identity.ApplicationRole", b =>
@@ -367,7 +503,9 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
 
                             b1.Property<string>("ProviderInstanceId")
                                 .IsRequired()
-                                .HasColumnType("text");
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("ProviderInstanceId");
 
                             b1.Property<string>("ProviderType")
                                 .IsRequired()
@@ -411,6 +549,43 @@ namespace CryptoManager.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("PublicKey")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CryptoManager.Domain.Entities.SystemCertificateAuthority", b =>
+                {
+                    b.OwnsOne("CryptoManager.Domain.ValueObjects.ProviderRef", "ProviderRef", b1 =>
+                        {
+                            b1.Property<Guid>("SystemCertificateAuthorityId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ProviderInstanceId")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("ProviderInstanceId");
+
+                            b1.Property<string>("ProviderType")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("character varying(50)")
+                                .HasColumnName("ProviderType");
+
+                            b1.Property<string>("Reference")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("ProviderRef");
+
+                            b1.HasKey("SystemCertificateAuthorityId");
+
+                            b1.ToTable("SystemCertificateAuthorities");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SystemCertificateAuthorityId");
+                        });
+
+                    b.Navigation("ProviderRef")
                         .IsRequired();
                 });
 

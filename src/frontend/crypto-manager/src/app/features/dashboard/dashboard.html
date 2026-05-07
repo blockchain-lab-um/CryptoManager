@@ -104,6 +104,10 @@
             <a pButton routerLink="/sign" label="Sign digest" icon="pi pi-lock" class="w-full p-button-secondary">
             </a>
 
+            <button pButton type="button" label="Download CA certificate" icon="pi pi-download"
+                class="w-full p-button-secondary" (click)="downloadSystemCaCertificate()">
+            </button>
+
             <a pButton routerLink="/keys" label="Browse keys" icon="pi pi-list" class="w-full p-button-text">
             </a>
         </div>

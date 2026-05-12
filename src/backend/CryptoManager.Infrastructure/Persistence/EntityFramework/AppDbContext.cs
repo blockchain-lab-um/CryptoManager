@@ -1,4 +1,5 @@
 ﻿using CryptoManager.Domain.Entities;
+using CryptoManager.Domain.Identity;
 using CryptoManager.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<SystemCertificateAuthority> SystemCertificateAuthorities => Set<SystemCertificateAuthority>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
+    public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

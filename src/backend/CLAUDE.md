@@ -8,47 +8,90 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build entire solution
 dotnet build CryptoManager.sln
 
-# Run API server (Swagger UI available at /swagger in Development)
+# Run API server (Swagger UI at /swagger in Development)
 dotnet run --project CryptoManager.API
 
-# Run tests
-dotnet test
+# EF Core migrations (run from CryptoManager.API directory; AppDbContext lives in Infrastructure)
+dotnet ef migrations add <Name> --project ../CryptoManager.Infrastructure --startup-project .
+dotnet ef database update --project ../CryptoManager.Infrastructure --startup-project .
 ```
+
+There is no test project in the solution today.
+
+### Required user-secrets / configuration
+
+Startup fails fast without these (set via `dotnet user-secrets` or env):
+
+- `Jwt:Secret` — symmetric key for JWT bearer tokens
+- `DefaultAdmin:Password` — seeds the bootstrap Admin user on first run
+- `ConnectionStrings:DefaultConnection` — Postgres connection (Npgsql)
+- `HsmProviders` — array; **exactly one** entry must have `IsDefault: true`. Each entry has `Id`, `Type` (`SoftHsm` | `Pkcs11`), and a matching options block (`SoftHsm` or `Pkcs11`).
 
 ## Architecture
 
-Clean Architecture with four projects:
+Clean Architecture, four projects, dependency flow API → Application ← Infrastructure → Domain.
 
-- **CryptoManager.Domain** - Entities, value objects, enums, domain exceptions. Zero external dependencies.
-- **CryptoManager.Application** - Use cases (CreateKey, RotateKey, SignDigest, GetPublicKey) and abstractions (IKeyRepository, IHsmProvider, IAuditSink, IClock).
-- **CryptoManager.Infrastructure** - Implementations: SoftHsmProvider (in-memory RSA/ECDSA), InMemoryKeyRepository, InMemoryAuditSink, SystemClock. All registered as singletons.
-- **CryptoManager.API** - ASP.NET Core controllers (KeysController, CryptoController), DTOs, ErrorHandlingMiddleware. Use cases registered as scoped.
+- **CryptoManager.Domain** — Entities (`Key`, `KeyVersion`, `Certificate`, audit, CA), value objects, enums, `Guard`, `DomainException`. Zero external deps.
+- **CryptoManager.Application** — Use cases + abstractions (`IKeyRepository`, `IHsmProviderRegistry`, `IAuditSink`, `IClock`, `ICertificateRepository`, `ISignedArtifactBuilder`, `ICsrBuilder`, `ICertificateValidator`, `ICertificateAuthority`, `ISignedFileVerifier`, `ICurrentUser`, `IUnitOfWork`). Throws `NotFoundException` for missing aggregates.
+- **CryptoManager.Infrastructure** — EF Core (Npgsql) persistence, ASP.NET Identity, JWT issuance, HSM providers, BouncyCastle/PDFsharp signing, soft CA.
+- **CryptoManager.API** — Controllers, DTOs, `ErrorHandlingMiddleware` (DomainException→400, NotFoundException→404, else 500), JWT bearer + Identity wiring, startup migration & admin seeding.
 
-Dependency flow: API -> Application <- Infrastructure -> Domain. Infrastructure implements Application abstractions.
+## HSM Provider Model
+
+Multiple HSM providers are registered side-by-side and selected per-key.
+
+- Configured via the `HsmProviders` array; `Program.cs` builds an `IHsmProviderRegistry` (singleton) keyed by provider `Id`.
+- `SoftHsmProvider` — in-process RSA/ECDSA, optionally persisted to a JSON file (dev/MVP). Generates a self-signed `X509Certificate2` per signing key.
+- `Pkcs11HsmProvider` — real HSM via Pkcs11Interop. On Linux, `libdl` is redirected to `libdl.so.2` in `Program.cs`.
+- A `Key` records its provider in `ProviderRef`; use cases resolve the provider through the registry, never directly.
 
 ## Domain Model
 
-**Key** is the central aggregate. It holds a name, purpose, allowed mechanisms whitelist, and a collection of **KeyVersion** instances. Each KeyVersion maps to actual key material in an HSM via a **ProviderRef** value object.
+`Key` is the central aggregate: name, purpose, allowed-mechanisms whitelist, collection of `KeyVersion`. The first version added becomes Primary.
 
-Key lifecycle: Active -> Disabled -> Deleted. KeyVersion lifecycle: Primary -> Active -> Retired -> Disabled -> Destroyed. The first version added to a Key automatically becomes Primary.
+- Key lifecycle: Active → Disabled → Deleted.
+- KeyVersion lifecycle: Primary → Active → Retired → Disabled → Destroyed.
+- `Mechanism` is a closed set (RSA_PSS_SHA256, ECDSA_P256_SHA256 for MVP).
+- `Certificate` is a separate aggregate linked to a `KeyVersion`; enrollment goes CSR → submit-to-CA → complete (or import). Revocation is supported.
 
-**Mechanism** is a closed set of crypto operations (RSA_PSS_SHA256, ECDSA_P256_SHA256 for MVP). Keys whitelist which mechanisms they permit.
+Domain invariants are enforced via `Guard` and throw `DomainException`.
 
-Domain invariants are enforced via `Guard` (throws `DomainException`). Application-layer not-found cases throw `NotFoundException`.
+## File Signing
 
-## API Endpoints
+Routed by `ISignedArtifactBuilder` (→ `SignedArtifactBuilder`):
 
-- `POST /api/keys` - Create a key
-- `POST /api/keys/{keyId}/rotate` - Rotate a key (new version becomes primary)
-- `GET /api/keys/{keyId}/public?version={version}` - Get public key (version optional, defaults to primary)
-- `POST /api/crypto/sign` - Sign a digest
+- PDF (magic bytes `%PDF-`) → **PAdES** via `PadesSigner` + PDFsharp `DigitalSignatureHandler` and an HSM-backed `IDigitalSigner`.
+- Anything else → **PKCS#7 attached** (`.p7m`) via `BouncyCastlePkcs7AttachedSigner`.
+- Verification: `SignedFileVerifier`.
+- Endpoints emit `X-Audit-Event-Id`, `X-Key-Id`, `X-Key-Version`, `X-Mechanism`, `X-Signed-Format`, `X-File-Name` (CORS-exposed).
 
-ErrorHandlingMiddleware maps DomainException -> 400, NotFoundException -> 404, unhandled -> 500.
+## API Endpoints (high level)
 
-## Key Conventions
+- `POST /api/auth/...` — login / token issuance (JWT, roles `Admin`, `Operator`)
+- `POST /api/keys`, `POST /api/keys/{id}/rotate`, `DELETE /api/keys/{id}`, `GET /api/keys`, `GET /api/keys/{id}/public`
+- `POST /api/crypto/sign` (digest), `POST /api/crypto/sign-file` (multipart), verify endpoints
+- `/api/certificates/...` — generate CSR, submit to CA, complete enrollment, import, revoke, get active
+- `/api/audit/...`, `/api/system/...`
 
-- .NET 9.0, nullable reference types enabled, file-scoped namespaces
-- Rich domain model with business logic in entities (not anemic)
-- Value objects as `record` or `record struct` types
-- Actor/auth is hardcoded to "dev" in the API layer (no auth yet)
-- All infrastructure is in-memory for MVP (designed for swap-out via abstractions)
+Authorization: a global fallback policy requires authenticated users. Policies `AdminOnly` and `CanOperate` (Admin or Operator) gate sensitive actions. Identity cookie redirects are suppressed — the API returns 401/403.
+
+## DI Lifetimes
+
+- **Singletons:** `IHsmProviderRegistry`, `IClock`, `HsmBackedCertificateFactory`, `ISoftCaBootstrapper`, `ICertificateAuthority` (soft CA).
+- **Scoped:** EF repositories, `IUnitOfWork`, `IAuditSink`, all use cases, signing services (`IPadesSigner`, `IPkcs7AttachedSigner`, `ISignedArtifactBuilder`, `ISignedFileVerifier`, `ICsrBuilder`, `ICertificateValidator`), `ICurrentUser`, `TokenService`.
+
+## Startup Side-Effects
+
+`Program.cs` runs EF migrations, bootstraps the soft CA via `ISoftCaBootstrapper.EnsureInitializedAsync`, ensures roles `Admin`/`Operator` exist, and seeds the default admin user from configuration. PDFsharp's `GlobalFontSettings.FontResolver` is wired to `SwitzerFontResolver` against the deployed `Fonts/` directory.
+
+## Library Quirks (BouncyCastle 2.6 / PDFsharp 6.2)
+
+- BouncyCastle 2.x has no `IContentSigner`, no `X509StoreFactory`, no `CollectionStore<T>`. Use `ISignatureFactory` + `IStreamCalculator<IBlockResult>`; implement `IStore<X509Certificate>` inline. `IBlockResult` requires the `Collect(Span<byte>)` and `GetMaxResultLength()` overloads. `SignerInfoGeneratorBuilder.Build(ISignatureFactory, X509Certificate)` is the correct call.
+- PDFsharp 6.2.4 targets `net10.0`. There is no `PdfDocumentSigner`/`PdfSignatureOptions` — use `DigitalSignatureHandler.ForDocument` with an `IDigitalSigner`. `PdfSharpDefaultSigner` lives in `PdfSharp.Cryptography.dll`. Don't call `AddSignatureComponentsAsync` (XML-doc only); just `document.Save` after `ForDocument`.
+
+## Conventions
+
+- .NET 9.0, nullable reference types on, file-scoped namespaces.
+- Rich domain model — business logic in entities, not anemic DTOs.
+- Value objects as `record` / `record struct`.
+- Actor identity flows via `ICurrentUser` (resolved from `HttpContext`); audit events record it.

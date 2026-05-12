@@ -95,3 +95,6 @@ Authorization: a global fallback policy requires authenticated users. Policies `
 - Rich domain model — business logic in entities, not anemic DTOs.
 - Value objects as `record` / `record struct`.
 - Actor identity flows via `ICurrentUser` (resolved from `HttpContext`); audit events record it.
+
+## Rules
+- When creating git commits, use short git commit messages and never add "Co-authored by Claude" and never mention "Claude" at all.

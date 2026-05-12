@@ -1,3 +1,40 @@
+// JSON-encoded shapes the backend sends (Fido2NetLib's options.ToJson() emits these).
+// Byte fields arrive as base64url strings; decode* helpers convert them to ArrayBuffer
+// before handing the options to navigator.credentials.create/get.
+
+interface PublicKeyCredentialDescriptorJSON {
+  type: PublicKeyCredentialType;
+  id: string;
+  transports?: AuthenticatorTransport[];
+}
+
+interface PublicKeyCredentialUserEntityJSON {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
+export interface PublicKeyCredentialCreationOptionsJSON {
+  challenge: string;
+  rp: PublicKeyCredentialRpEntity;
+  user: PublicKeyCredentialUserEntityJSON;
+  pubKeyCredParams: PublicKeyCredentialParameters[];
+  timeout?: number;
+  excludeCredentials?: PublicKeyCredentialDescriptorJSON[];
+  authenticatorSelection?: AuthenticatorSelectionCriteria;
+  attestation?: AttestationConveyancePreference;
+  extensions?: AuthenticationExtensionsClientInputs;
+}
+
+export interface PublicKeyCredentialRequestOptionsJSON {
+  challenge: string;
+  timeout?: number;
+  rpId?: string;
+  allowCredentials?: PublicKeyCredentialDescriptorJSON[];
+  userVerification?: UserVerificationRequirement;
+  extensions?: AuthenticationExtensionsClientInputs;
+}
+
 export function bufferToBase64Url(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let s = '';
@@ -13,24 +50,35 @@ export function base64UrlToBuffer(s: string): ArrayBuffer {
   return out.buffer;
 }
 
-export function decodeCreateOptions(o: any): PublicKeyCredentialCreationOptions {
+export function decodeCreateOptions(o: PublicKeyCredentialCreationOptionsJSON): PublicKeyCredentialCreationOptions {
   return {
     ...o,
     challenge: base64UrlToBuffer(o.challenge),
     user: { ...o.user, id: base64UrlToBuffer(o.user.id) },
-    excludeCredentials: (o.excludeCredentials ?? []).map((c: any) => ({ ...c, id: base64UrlToBuffer(c.id) }))
+    excludeCredentials: (o.excludeCredentials ?? []).map(c => ({ ...c, id: base64UrlToBuffer(c.id) }))
   };
 }
 
-export function decodeRequestOptions(o: any): PublicKeyCredentialRequestOptions {
+export function decodeRequestOptions(o: PublicKeyCredentialRequestOptionsJSON): PublicKeyCredentialRequestOptions {
   return {
     ...o,
     challenge: base64UrlToBuffer(o.challenge),
-    allowCredentials: (o.allowCredentials ?? []).map((c: any) => ({ ...c, id: base64UrlToBuffer(c.id) }))
+    allowCredentials: (o.allowCredentials ?? []).map(c => ({ ...c, id: base64UrlToBuffer(c.id) }))
   };
 }
 
-export function encodeAttestation(c: PublicKeyCredential) {
+export interface EncodedAttestation {
+  id: string;
+  rawId: string;
+  type: string;
+  response: {
+    attestationObject: string;
+    clientDataJSON: string;
+    transports: string[];
+  };
+}
+
+export function encodeAttestation(c: PublicKeyCredential): EncodedAttestation {
   const r = c.response as AuthenticatorAttestationResponse;
   // getTransports() returns lowercase WebAuthn transport strings ("usb"|"nfc"|"ble"|"internal"|"hybrid").
   // Pass them through unchanged — the backend stores these strings verbatim, so frontend filtering by transport works.
@@ -47,7 +95,19 @@ export function encodeAttestation(c: PublicKeyCredential) {
   };
 }
 
-export function encodeAssertion(c: PublicKeyCredential) {
+export interface EncodedAssertion {
+  id: string;
+  rawId: string;
+  type: string;
+  response: {
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+    userHandle: string | null;
+  };
+}
+
+export function encodeAssertion(c: PublicKeyCredential): EncodedAssertion {
   const r = c.response as AuthenticatorAssertionResponse;
   return {
     id: c.id,

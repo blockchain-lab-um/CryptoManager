@@ -10,6 +10,7 @@ using CryptoManager.Infrastructure.HSM;
 using CryptoManager.Infrastructure.HSM.PKCS11;
 using CryptoManager.Infrastructure.HSM.SoftHSM;
 using CryptoManager.Infrastructure.Identity;
+using CryptoManager.Infrastructure.Identity.WebAuthn;
 using CryptoManager.Infrastructure.Pdf;
 using CryptoManager.Infrastructure.Persistence.EntityFramework;
 using CryptoManager.Infrastructure.Persistence.EntityFramework.Repositories;
@@ -192,6 +193,27 @@ builder.Services.AddScoped<ISignedFileVerifier, SignedFileVerifier>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ── WebAuthn / FIDO2 ───────────────────────────────────────────────────────
+builder.Services.Configure<WebAuthnOptions>(builder.Configuration.GetSection(WebAuthnOptions.SectionName));
+
+builder.Services.AddFido2(o => {
+    var w = builder.Configuration.GetSection(WebAuthnOptions.SectionName).Get<WebAuthnOptions>()!;
+    if (w.Origins.Length == 0)
+        throw new InvalidOperationException("WebAuthn:Origins must contain at least one origin.");
+    o.ServerDomain = w.ServerDomain;
+    o.ServerName = w.ServerName;
+    o.Origins = new HashSet<string>(w.Origins, StringComparer.Ordinal);
+    o.TimestampDriftTolerance = 300_000;
+});
+
+// Phase 1 single-instance only. The in-memory cache uses ConcurrentDictionary.TryRemove for atomic
+// one-time-use consume. For multi-instance deployments, replace this registration with a Redis-backed
+// implementation that uses GETDEL (or a Lua script) — IDistributedCache alone is NOT sufficient because
+// Get + Remove is not atomic and would allow challenge replay.
+builder.Services.AddSingleton<IWebAuthnChallengeCache, InMemoryWebAuthnChallengeCache>();
+builder.Services.AddScoped<IUserCredentialRepository, UserCredentialRepository>();
+builder.Services.AddScoped<IWebAuthnService, WebAuthnService>();
 
 var app = builder.Build();
 

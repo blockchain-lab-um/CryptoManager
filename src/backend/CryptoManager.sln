@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoManager.API", "Crypto
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoManager.Application", "CryptoManager.Application\CryptoManager.Application.csproj", "{50B67310-B119-4FE6-B30D-8E79A8F67BD0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoManager.Tests", "CryptoManager.Tests\CryptoManager.Tests.csproj", "{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{50B67310-B119-4FE6-B30D-8E79A8F67BD0}.Release|x64.Build.0 = Release|Any CPU
 		{50B67310-B119-4FE6-B30D-8E79A8F67BD0}.Release|x86.ActiveCfg = Release|Any CPU
 		{50B67310-B119-4FE6-B30D-8E79A8F67BD0}.Release|x86.Build.0 = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|x64.Build.0 = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Debug|x86.Build.0 = Debug|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|x64.ActiveCfg = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|x64.Build.0 = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|x86.ActiveCfg = Release|Any CPU
+		{8F3BCB83-8A7E-40AD-AF90-D0A19CA13ECB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

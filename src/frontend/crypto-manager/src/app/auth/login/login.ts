@@ -9,6 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 
 import { AuthService } from '../auth.service';
+import { WebAuthnService } from '../webauthn/webauthn.service';
 import { Card } from '../../shared/components/card/card';
 
 @Component({
@@ -37,6 +38,28 @@ export class Login {
 
   loading = signal(false);
   errorMessage = signal<string | null>(null);
+
+  readonly passkeySupported = WebAuthnService.isSupported();
+
+  async signInWithPasskey() {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    try {
+      // If the username field is blank/whitespace, omit it so the backend issues a discoverable-credentials
+      // assertion (empty allowList → usernameless login). Treating "" as a username would force allow-list mode
+      // and fail for users who only know their passkey, not their account name.
+      const raw = this.form.value.userName;
+      const userName = typeof raw === 'string' && raw.trim().length > 0 ? raw.trim() : undefined;
+      await this.authService.loginWithPasskey(userName);
+      // Match the existing password-login redirect: read returnUrl from the activated route snapshot.
+      // The Login component has no `returnUrl()` signal — do NOT introduce one for this feature.
+      const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
+      this.router.navigateByUrl(returnUrl);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Passkey sign-in failed.';
+      this.errorMessage.set(message);
+    } finally { this.loading.set(false); }
+  }
 
   onSubmit() {
     this.form.markAllAsTouched();

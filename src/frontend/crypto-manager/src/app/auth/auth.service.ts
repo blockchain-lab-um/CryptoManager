@@ -4,6 +4,7 @@ import { Observable, map, tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { AuthUser, LoginRequest, LoginResponse, RegisterRequest } from './models/auth.models';
+import { WebAuthnService } from './webauthn/webauthn.service';
 
 const SESSION_TOKEN_KEY = 'auth.token';
 const SESSION_USER_KEY = 'auth.user';
@@ -11,6 +12,7 @@ const SESSION_USER_KEY = 'auth.user';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
+  private webauthn = inject(WebAuthnService);
   private base = environment.apiBaseUrl;
 
   private _token = signal<string | null>(sessionStorage.getItem(SESSION_TOKEN_KEY));
@@ -48,7 +50,12 @@ export class AuthService {
     window.location.replace('/login');
   }
 
-  private applySession(res: LoginResponse): void {
+  async loginWithPasskey(userName?: string): Promise<void> {
+    const resp = await this.webauthn.loginWithPasskey(userName);
+    this.applySession(resp);
+  }
+
+  applySession(res: LoginResponse): void {
     sessionStorage.setItem(SESSION_TOKEN_KEY, res.token);
     sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify({ userName: res.userName, roles: res.roles }));
     this._token.set(res.token);

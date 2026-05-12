@@ -1,0 +1,47 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="space-y-6">
+  <h1 class="text-2xl font-semibold tracking-tight">Your passkeys</h1>
+
+  <div class="rounded-2xl border border-slate-200 bg-white divide-y divide-slate-100">
+    @for (cred of credentials(); track cred.id) {
+      <div class="flex items-center gap-4 px-5 py-4">
+        <div class="flex-1 min-w-0">
+          @if (editingId() === cred.id) {
+            <input pInputText [(ngModel)]="editingNickname" (keydown.enter)="saveNickname(cred)" (keydown.escape)="cancelEdit()"
+              class="text-sm font-medium" autofocus />
+          } @else {
+            <button type="button" class="text-sm font-medium hover:underline text-left" (click)="startEdit(cred)">
+              {{ cred.nickname }}
+            </button>
+          }
+          <div class="text-xs text-slate-500 mt-0.5">
+            Last used: {{ cred.lastUsedAt ? (cred.lastUsedAt | date:'mediumDate') : 'Never' }}
+          </div>
+        </div>
+
+        <p-tag [value]="badgeLabel(cred)" [severity]="badgeSeverity(cred)" />
+
+        @if (editingId() === cred.id) {
+          <p-button icon="pi pi-check" [text]="true" size="small" (onClick)="saveNickname(cred)" aria-label="Save" />
+          <p-button icon="pi pi-times" [text]="true" size="small" severity="secondary" (onClick)="cancelEdit()" aria-label="Cancel" />
+        } @else {
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="confirmDelete(cred)" aria-label="Delete" />
+        }
+      </div>
+    } @empty {
+      <div class="px-5 py-8 text-center text-sm text-slate-500">No passkeys registered yet.</div>
+    }
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <p-button label="Add passkey" icon="pi pi-plus" (onClick)="addPasskey('platform')" [loading]="loading()" />
+    <p-button label="Add security key" icon="pi pi-shield" severity="secondary" (onClick)="addPasskey('cross-platform')" [loading]="loading()" />
+  </div>
+
+  <p class="text-xs text-slate-500 max-w-prose">
+    The username shown on your device's passkey picker is captured when you add the passkey and will not update
+    if you later rename your account. Remove and re-add the passkey to refresh it.
+  </p>
+</div>

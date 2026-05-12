@@ -63,4 +63,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/users/users')
       .then(m => m.UsersPage),
   },
+  {
+    path: 'account/passkeys',
+    canActivate: [authGuard],
+    loadComponent: () => import('./auth/passkeys/passkeys').then(m => m.PasskeysComponent),
+    title: 'Passkeys'
+  },
 ];

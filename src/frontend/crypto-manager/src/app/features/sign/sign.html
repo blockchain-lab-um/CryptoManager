@@ -1,0 +1,145 @@
+<div class="mb-8">
+    <div class="text-sm text-slate-500">Crypto</div>
+    <h1 class="text-3xl font-semibold tracking-tight">Sign</h1>
+    <p class="mt-2 max-w-2xl text-slate-600">
+        Provide text or upload a file to sign.
+    </p>
+</div>
+
+@if (error(); as err) {
+<p-message severity="error" [text]="err" class="mb-4 block"></p-message>
+}
+
+<div class="grid gap-6 lg:grid-cols-2">
+    <app-card padding="p-6">
+        <div class="text-xs font-medium text-slate-500">Request</div>
+        <div class="mt-1 text-lg font-semibold">Sign</div>
+
+        <div class="mt-4 space-y-4" [formGroup]="form">
+            <div>
+                <label class="text-xs text-slate-500" for="sign-key">Key</label>
+                <p-select id="sign-key" class="w-full mt-1" [options]="keyOptions()" placeholder="Select a key"
+                    formControlName="keyId" optionLabel="label" optionValue="value"
+                    [loading]="keysService.keysResource.isLoading()" [filter]="true"
+                    filterPlaceholder="Search keys..."></p-select>
+            </div>
+
+            @if (activeCertMissing()) {
+            <p-message severity="warn" styleClass="w-full">
+                This key has no active certificate. Document signing requires an active certificate.
+                <a [routerLink]="['/keys', selectedKeyId(), 'certificates']" class="ml-1 underline">
+                    Set up a certificate for this key
+                </a>
+            </p-message>
+            }
+
+            <div>
+                <label class="text-xs text-slate-500" for="sign-mechanism">Mechanism</label>
+                <p-select id="sign-mechanism" class="w-full mt-1" [options]="mechanismOptions"
+                    placeholder="Select or type" formControlName="mechanism" [editable]="true"></p-select>
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-500 mb-1 block">Input</label>
+                <p-selectButton styleClass="w-full" class="w-full" [options]="inputModeOptions" [ngModel]="inputMode()"
+                    (ngModelChange)="inputMode.set($event)" [ngModelOptions]="{ standalone: true }"
+                    aria-label="Input mode"></p-selectButton>
+            </div>
+
+            @if (inputMode() === 'text') {
+            <div>
+                <label class="text-xs text-slate-500" for="sign-text">Text to sign</label>
+                <textarea id="sign-text" pTextarea rows="6" formControlName="plainText"
+                    class="w-full mt-1 font-mono text-xs" placeholder="Enter text to sign..."></textarea>
+            </div>
+            } @else {
+            <div>
+                <label class="text-xs text-slate-500 m-1 block">Return format</label>
+                <p-selectButton styleClass="w-full" class="w-full" [options]="returnFormatOptions"
+                    [ngModel]="signatureReturnFormat()" (ngModelChange)="signatureReturnFormat.set($event)"
+                    [ngModelOptions]="{ standalone: true }" aria-label="Return format"></p-selectButton>
+
+                <label class="text-xs text-slate-500 block m-1 mt-3" for="sign-file">File to sign</label>
+                <input id="sign-file" type="file" (change)="onFileSelected($event)" class="block w-full text-sm text-slate-600
+                            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                            file:text-sm file:font-medium file:bg-slate-100
+                            file:text-slate-700 hover:file:bg-slate-200
+                            cursor-pointer" />
+
+                @if (isPdf() && signatureReturnFormat() === 'file') {
+                <div class="flex flex-wrap items-center gap-3 mt-3">
+                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input type="checkbox" [checked]="addStamp()"
+                            (change)="addStamp.set($any($event.target).checked)" class="rounded border-slate-300" />
+                        Add signature stamp
+                    </label>
+                    @if (addStamp()) {
+                    <button pButton type="button" label="Adjust position" icon="pi pi-arrows-alt" [outlined]="true"
+                        size="small" (click)="stampDialogVisible.set(true)"></button>
+                    @if (stampPosition()) {
+                    <span class="text-xs text-green-600 font-medium">Custom position set</span>
+                    }
+                    }
+                </div>
+                }
+            </div>
+            }
+
+            @if (isPdf() && addStamp() && stampDialogVisible()) {
+            <app-stamp-position-dialog [visible]="stampDialogVisible()" (visibleChange)="stampDialogVisible.set($event)"
+                [pdfFile]="selectedFile()!" [initialPosition]="stampPosition()"
+                (applied)="onStampPositionApplied($event)">
+            </app-stamp-position-dialog>
+            }
+
+            <p-button icon="pi pi-download" styleClass="w-full mb-3" severity="secondary" label="Download Binary Digest"
+                (onClick)="downloadBinaryDigest()"></p-button>
+            <button pButton type="button" label="Sign" class="w-full p-button" [loading]="signing()"
+                [disabled]="signing() || activeCertMissing()" (click)="onSign()"></button>
+        </div>
+    </app-card>
+
+    <app-card padding="p-6">
+        <div class="text-xs font-medium text-slate-500">Response</div>
+        <div class="mt-1 text-lg font-semibold">{{ signatureReturnFormatText }}</div>
+
+        @if (result(); as res) {
+        @if (res.format === 'file' && res.signedFile) {
+        <div class="mt-4 space-y-4">
+            <p-button icon="pi pi-download" label="Download Signed File" (onClick)="downloadSignedFile()"
+                size="small"></p-button>
+        </div>
+        }@else {
+        <div class="mt-4 space-y-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="text-xs text-slate-500">Audit event</div>
+                <div class="mt-1 font-mono text-sm">{{ res.auditEventId }}</div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="text-xs text-slate-500">Signature (Base64)</div>
+                <textarea pTextarea rows="8" class="w-full my-2 font-mono text-xs"
+                    [readonly]="true">{{ res.signatureBase64 }}</textarea>
+                <p-button icon="pi pi-download" label="Download Binary Signature" (onClick)="downloadBinarySignature()"
+                    size="small"></p-button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="text-xs text-slate-500">Key version</div>
+                    <div class="mt-1 text-sm">{{ res.keyVersion }}</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="text-xs text-slate-500">Encoding</div>
+                    <div class="mt-1 text-sm">{{ res.encoding }}</div>
+                </div>
+            </div>
+        </div>
+        }
+        } @else {
+        <div class="mt-6 text-slate-500 text-sm">
+            Run a signing request to see the signature.
+        </div>
+        }
+    </app-card>
+</div>

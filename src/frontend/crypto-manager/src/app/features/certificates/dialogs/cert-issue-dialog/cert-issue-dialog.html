@@ -1,0 +1,41 @@
+<p-dialog [visible]="visible()" (visibleChange)="visibleChange.emit($event)" [modal]="true" [draggable]="false"
+    [resizable]="false" header="Enroll certificate" [style]="{ width: '36rem' }">
+
+    @if (error(); as err) {
+    <p-message severity="error" [text]="err" class="mb-4 block"></p-message>
+    }
+
+    @if (loading()) {
+    <div class="flex w-full items-center justify-center py-10">
+        <p-progress-spinner></p-progress-spinner>
+    </div>
+    } @else {
+    <div class="space-y-4" [formGroup]="form">
+        <div>
+            <label class="text-xs text-slate-500">Common name</label>
+            <input pInputText formControlName="commonName" class="mt-1 w-full" placeholder="e.g. Document Signing" />
+        </div>
+
+        <div>
+            <label class="text-xs text-slate-500">Organization</label>
+            <input pInputText formControlName="organization" class="mt-1 w-full" />
+        </div>
+
+        <div>
+            <label class="text-xs text-slate-500">Organizational unit</label>
+            <input pInputText formControlName="organizationalUnit" class="mt-1 w-full" />
+        </div>
+
+        <div>
+            <label class="text-xs text-slate-500">Country</label>
+            <input pInputText formControlName="country" class="mt-1 w-full" maxlength="2" placeholder="SI" />
+            <div class="mt-1 text-xs text-slate-500">Use a 2-letter ISO country code.</div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button pButton type="button" label="Cancel" class="p-button-secondary" (click)="close()"></button>
+            <button pButton type="button" label="Enroll" (click)="submit()"></button>
+        </div>
+    </div>
+    }
+</p-dialog>

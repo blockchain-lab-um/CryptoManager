@@ -1,0 +1,176 @@
+/* Fixed background — covers the full viewport, sits behind all other elements */
+.auth-background {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* Deeper tint so blobs have contrast to show against */
+  background: linear-gradient(to bottom, #f1f5f9, #e0f2fe, #e0e7ff);
+}
+
+/* Content — fixed to the full viewport so centering ignores the header offset */
+.auth-content {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Subtle dot-grid overlay for a tech/crypto feel */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(100, 116, 139, 0.14) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+/* ── Blobs ─────────────────────────────────────── */
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+/* Sky-400 — large, top-left */
+.blob-1 {
+  width: 650px;
+  height: 650px;
+  top: -18%;
+  left: -12%;
+  background: radial-gradient(circle at 40% 40%, rgba(56, 189, 248, 0.58), rgba(14, 165, 233, 0.22));
+  filter: blur(55px);
+  animation: float-1 22s ease-in-out infinite;
+}
+
+/* Indigo-400 — large, top-right */
+.blob-2 {
+  width: 580px;
+  height: 580px;
+  top: -14%;
+  right: -10%;
+  background: radial-gradient(circle at 60% 40%, rgba(129, 140, 248, 0.55), rgba(99, 102, 241, 0.2));
+  filter: blur(55px);
+  animation: float-2 18s ease-in-out infinite;
+}
+
+/* Violet-400 — medium, bottom-left */
+.blob-3 {
+  width: 480px;
+  height: 480px;
+  bottom: 0%;
+  left: -2%;
+  background: radial-gradient(circle at 50% 60%, rgba(167, 139, 250, 0.5), rgba(139, 92, 246, 0.18));
+  filter: blur(50px);
+  animation: float-3 15s ease-in-out infinite;
+}
+
+/* Sky-500 — medium, bottom-right */
+.blob-4 {
+  width: 420px;
+  height: 420px;
+  bottom: -10%;
+  right: 2%;
+  background: radial-gradient(circle at 55% 45%, rgba(14, 165, 233, 0.48), rgba(2, 132, 199, 0.16));
+  filter: blur(50px);
+  animation: float-4 20s ease-in-out infinite;
+}
+
+/* Indigo-300 — small, centre — adds depth */
+.blob-5 {
+  width: 300px;
+  height: 300px;
+  top: calc(38% - 150px);
+  left: calc(52% - 150px);
+  background: radial-gradient(circle at 50% 50%, rgba(165, 180, 252, 0.52), rgba(99, 102, 241, 0.14));
+  filter: blur(45px);
+  animation: float-5 13s ease-in-out infinite;
+}
+
+/* ── Keyframes ─────────────────────────────────── */
+
+@keyframes float-1 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  30% {
+    transform: translate(90px, -110px) scale(1.1);
+  }
+
+  65% {
+    transform: translate(-55px, 70px) scale(0.93);
+  }
+}
+
+@keyframes float-2 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  40% {
+    transform: translate(-100px, 80px) scale(1.12);
+  }
+
+  75% {
+    transform: translate(60px, -60px) scale(0.9);
+  }
+}
+
+@keyframes float-3 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  25% {
+    transform: translate(75px, -75px) scale(1.08);
+  }
+
+  70% {
+    transform: translate(-45px, 55px) scale(0.92);
+  }
+}
+
+@keyframes float-4 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(0.95);
+  }
+
+  50% {
+    transform: translate(-80px, -90px) scale(1.1);
+  }
+}
+
+@keyframes float-5 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(100px, -70px) scale(1.15);
+  }
+
+  66% {
+    transform: translate(-60px, 85px) scale(0.85);
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none;
+  }
+}

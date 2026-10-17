@@ -1,0 +1,64 @@
+<p-dialog [visible]="visible()" (visibleChange)="visibleChange.emit($event)" [modal]="true" [draggable]="false"
+    [resizable]="false" header="Certificate details" [style]="{ width: '42rem' }">
+
+    @if (cert(); as cert) {
+    <div class="space-y-4">
+        <div class="flex flex-wrap items-center gap-2">
+            <p-tag [value]="cert.status" [severity]="statusSeverity(cert.status)"
+                [styleClass]="certStatusBadgeClass(cert.status)"></p-tag>
+            <p-tag [value]="sourceLabel(cert.source)" severity="info"></p-tag>
+        </div>
+
+        <div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Subject DN</div>
+            <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.subjectDN ?? 'Pending enrollment' }}</div>
+        </div>
+
+        <div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Issuer DN</div>
+            <div class="mt-1 break-all font-mono text-sm text-slate-700">{{ cert.issuerDN ?? 'Pending enrollment' }}</div>
+        </div>
+
+        <div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Serial number</div>
+            <div class="mt-1 flex items-center gap-2">
+                <span class="break-all font-mono text-sm text-slate-700">{{ cert.serialNumber ?? 'Pending enrollment' }}</span>
+                <button pButton type="button" icon="pi pi-copy" class="p-button-text p-button-sm"
+                    aria-label="Copy serial number" [disabled]="!cert.serialNumber" (click)="copy(cert.serialNumber)"></button>
+            </div>
+        </div>
+
+        <div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Thumbprint</div>
+            <div class="mt-1 flex items-center gap-2">
+                <span class="break-all font-mono text-sm text-slate-700">{{ cert.thumbprint ?? 'Pending enrollment' }}</span>
+                <button pButton type="button" icon="pi pi-copy" class="p-button-text p-button-sm"
+                    aria-label="Copy thumbprint" [disabled]="!cert.thumbprint" (click)="copy(cert.thumbprint)"></button>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Valid from</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notBefore ? (cert.notBefore | date:'medium') : 'Pending enrollment' }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Valid to</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.notAfter ? (cert.notAfter | date:'medium') : 'Pending enrollment' }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Key version</div>
+                <div class="mt-1 font-mono text-sm text-slate-700">{{ cert.keyVersionId }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Created by</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.createdBy }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-slate-500">Created at</div>
+                <div class="mt-1 text-sm text-slate-700">{{ cert.createdAt | date:'medium' }}</div>
+            </div>
+        </div>
+    </div>
+    }
+</p-dialog>

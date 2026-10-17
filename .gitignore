@@ -1,0 +1,8 @@
+scripts/*
+*.deb
+storage/*
+docs/plans/*
+# Local Claude Code state (keep CLAUDE.md tracked)
+**/.claude/settings.local.json
+**/.claude/state/
+**/.claude/agent-memory/
